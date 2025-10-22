@@ -20,6 +20,85 @@ console.log('🔑 OpenAI API Key configured:', !!OPENAI_API_KEY);
 const toolsPath = path.join(process.cwd(), 'vibe.json');
 console.log('Loading tools from:', toolsPath);
 let toolsData;
+
+// Helper function to generate workflow execution summary
+function generateWorkflowSummary(pipeline) {
+  if (!pipeline.nodes || pipeline.nodes.length === 0) {
+    return 'Workflow generated successfully!';
+  }
+
+  const { nodes, edges } = pipeline;
+  let summary = '🚀 Workflow will execute as follows:\n\n';
+
+  // Find the starting node (node with no incoming edges)
+  const nodesWithIncoming = new Set(edges.map(edge => edge.to));
+  const startNodes = nodes.filter(node => !nodesWithIncoming.has(node.id));
+
+  if (startNodes.length === 0 && nodes.length > 0) {
+    // If no clear start, use the first node
+    startNodes.push(nodes[0]);
+  }
+
+  // Build execution flow
+  const processedNodes = new Set();
+  const executionOrder = [];
+
+  function buildFlow(nodeId) {
+    if (processedNodes.has(nodeId)) return;
+    processedNodes.add(nodeId);
+
+    const node = nodes.find(n => n.id === nodeId);
+    if (node) {
+      executionOrder.push(node);
+
+      // Find outgoing edges
+      const outgoingEdges = edges.filter(edge => edge.from === nodeId);
+      outgoingEdges.forEach(edge => {
+        buildFlow(edge.to);
+      });
+    }
+  }
+
+  startNodes.forEach(startNode => buildFlow(startNode.id));
+
+  // Generate the summary
+  executionOrder.forEach((node, index) => {
+    const toolData = toolsData.tools.find(tool =>
+      tool.name === node.name || tool.type === node.type
+    );
+    const nodeName = node.name || node.type;
+    const icon = toolData?.icon || '⚙️';
+
+    if (index === 0) {
+      summary += `📍 Start: ${icon} ${nodeName}`;
+    } else {
+      summary += ` ⬇️ ${icon} ${nodeName}`;
+    }
+
+    // Add parameter info if available
+    if (node.parameters && Object.keys(node.parameters).length > 0) {
+      const params = Object.entries(node.parameters)
+        .slice(0, 2) // Show only first 2 parameters
+        .map(([key, value]) => `${key}: ${Array.isArray(value) ? `[${value.join(', ')}]` : value}`)
+        .join(', ');
+      summary += ` (${params})`;
+    }
+
+    summary += '\n';
+  });
+
+  // Add schedule info if available
+  if (pipeline.schedule && pipeline.schedule.interval) {
+    summary += `\n⏰ Schedule: Runs ${pipeline.schedule.interval}`;
+    if (pipeline.schedule.next_run) {
+      summary += `, next at ${new Date(pipeline.schedule.next_run).toLocaleString()}`;
+    }
+  }
+
+  summary += '\n\n✨ Click "Run Workflow" to execute this automation!';
+
+  return summary;
+}
 try {
   const rawData = fs.readFileSync(toolsPath, 'utf8');
   toolsData = JSON.parse(rawData);
@@ -76,6 +155,10 @@ Your goal is to understand user intent and create executable workflows. Make rea
 
 IMPORTANT: Always create connections between nodes using edges! If you create multiple nodes, you MUST connect them in a logical flow.
 
+WORKFLOW MODIFICATION: If there are existing nodes in the workflow, preserve them and only add new nodes that make sense with the user's request. Connect new nodes to existing ones where appropriate. Reuse existing node IDs when possible.
+
+LAYOUT INSTRUCTIONS: When a node has multiple outputs, arrange them vertically (one under another) rather than horizontally. For example: Source → [Output1 (top)] and [Output2 (bottom)].
+
 Node format: {"id": "unique_id", "type": "tool_type", "name": "tool_name", "parameters": {...}}
 Edge format: {"from": "source_id", "to": "target_id"}
 Schedule format: {"interval": "daily/weekly/monthly", "next_run": "ISO_date", "timezone": "optional"}
@@ -87,7 +170,15 @@ Return ONLY the JSON object, nothing else.
 Example response: {"nodes": [{"id": "1", "type": "GSheets", "name": "Google Sheets", "parameters": {"spreadsheet_id": "example_sheet_id"}}, {"id": "2", "type": "Slack", "name": "Slack", "parameters": {"channel": "general"}}], "edges": [{"from": "1", "to": "2"}], "schedule": {"interval": "weekly", "next_run": "2025-10-27T09:00:00"}}
 
 ${existingWorkflowContext ? `EXISTING WORKFLOW CONTEXT:
-${existingWorkflowContext}` : ''}`;
+${existingWorkflowContext}
+
+INSTRUCTIONS FOR MODIFICATION:
+- Analyze the existing workflow and understand what the user wants to add or change
+- Only add new nodes that are relevant to the user's request
+- Connect new nodes to appropriate existing nodes
+- Maintain the logical flow of the existing workflow
+- Use the same node IDs for existing nodes if they appear in the new workflow
+- Only create new node IDs for completely new nodes` : ''}`;
 
     // Check if OpenAI API key is available
     if (!OPENAI_API_KEY) {
@@ -156,9 +247,12 @@ ${existingWorkflowContext}` : ''}`;
 
         console.log('✅ Complete pipeline with edges:', JSON.stringify(completePipeline, null, 2));
 
+        // Generate a descriptive summary of the workflow execution
+        const workflowSummary = generateWorkflowSummary(completePipeline);
+
         res.json({
           pipeline: completePipeline,
-          message: 'Workflow generated successfully!'
+          message: workflowSummary
         });
       } else {
         console.log('❌ Invalid response format - no nodes found');

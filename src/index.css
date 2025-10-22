@@ -135,6 +135,13 @@ body {
   margin-right: 40px;
 }
 
+.chat-message.execution-message {
+  background-color: #1e3a8a;
+  border: 1px solid #3b82f6;
+  margin-right: 40px;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
 /* Canvas styling - ReactFlow handles styling */
 .react-flow__node {
   border-radius: 6px;

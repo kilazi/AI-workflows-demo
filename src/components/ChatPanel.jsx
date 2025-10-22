@@ -45,16 +45,18 @@ function ChatPanel({ chatHistory, onChatSubmit, isLoading }) {
         )}
 
         {chatHistory.map((msg, index) => (
-          <div key={index} className={`chat-message ${msg.role}`}>
+          <div key={index} className={`chat-message ${msg.role} ${msg.isExecution ? 'execution-message' : ''}`}>
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs opacity-70">
-                {msg.role === 'user' ? 'You' : 'Assistant'}
+                {msg.role === 'user' ? 'You' : msg.isExecution ? '🚀 Execution' : 'Assistant'}
               </span>
               <span className="text-xs opacity-50">
                 {formatTimestamp(msg.timestamp)}
               </span>
             </div>
-            <div className="whitespace-pre-wrap">{msg.content}</div>
+            <div className={`whitespace-pre-wrap ${msg.isExecution ? 'font-mono text-sm' : ''}`}>
+              {msg.content}
+            </div>
           </div>
         ))}
 

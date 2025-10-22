@@ -11,7 +11,6 @@ import 'reactflow/dist/style.css';
 
 import ChatPanel from './components/ChatPanel';
 import ToolsSidebar from './components/ToolsSidebar';
-import ExecutionView from './components/ExecutionView';
 
 const initialNodes = [];
 const initialEdges = [];
@@ -70,19 +69,33 @@ function ParameterChips({ parameters }) {
 
 function EcosystemNode({ data }) {
   const showType = data.type && data.type !== data.label;
+  const isExecuting = data.isExecuting;
 
   return (
-    <div className="react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
+    <div className={`react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
+      isExecuting
+        ? 'border-blue-400 bg-blue-900 shadow-lg shadow-blue-400/50 animate-pulse'
+        : 'border-gray-600 bg-gray-800'
+    }`}>
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-400" />
       <div className="flex flex-col gap-1">
         <div className="flex items-center">
           <span className="text-lg mr-2 flex-shrink-0">{data.icon || '🌐'}</span>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            <span className={`text-sm font-medium truncate ${isExecuting ? 'text-blue-100' : 'text-white'}`}>
+              {data.label}
+            </span>
             {showType && (
-              <span className="text-blue-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+              <span className={`text-xs font-medium uppercase tracking-wide ${isExecuting ? 'text-blue-200' : 'text-blue-300'}`}>
+                {data.type}
+              </span>
             )}
           </div>
+          {isExecuting && (
+            <div className="ml-2 flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-400 border-t-transparent"></div>
+            </div>
+          )}
         </div>
         <ParameterChips parameters={data.parameters} />
       </div>
@@ -93,19 +106,33 @@ function EcosystemNode({ data }) {
 
 function UtilityNode({ data }) {
   const showType = data.type && data.type !== data.label;
+  const isExecuting = data.isExecuting;
 
   return (
-    <div className="react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
+    <div className={`react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
+      isExecuting
+        ? 'border-green-400 bg-green-900 shadow-lg shadow-green-400/50 animate-pulse'
+        : 'border-gray-600 bg-gray-800'
+    }`}>
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-green-400" />
       <div className="flex flex-col gap-1">
         <div className="flex items-center">
           <span className="text-lg mr-2 flex-shrink-0">{data.icon || '⚙️'}</span>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            <span className={`text-sm font-medium truncate ${isExecuting ? 'text-green-100' : 'text-white'}`}>
+              {data.label}
+            </span>
             {showType && (
-              <span className="text-green-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+              <span className={`text-xs font-medium uppercase tracking-wide ${isExecuting ? 'text-green-200' : 'text-green-300'}`}>
+                {data.type}
+              </span>
             )}
           </div>
+          {isExecuting && (
+            <div className="ml-2 flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-400 border-t-transparent"></div>
+            </div>
+          )}
         </div>
         <ParameterChips parameters={data.parameters} />
       </div>
@@ -116,19 +143,33 @@ function UtilityNode({ data }) {
 
 function AiToolNode({ data }) {
   const showType = data.type && data.type !== data.label;
+  const isExecuting = data.isExecuting;
 
   return (
-    <div className="react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
+    <div className={`react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
+      isExecuting
+        ? 'border-purple-400 bg-purple-900 shadow-lg shadow-purple-400/50 animate-pulse'
+        : 'border-gray-600 bg-gray-800'
+    }`}>
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-purple-400" />
       <div className="flex flex-col gap-1">
         <div className="flex items-center">
           <span className="text-lg mr-2 flex-shrink-0">{data.icon || '🤖'}</span>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            <span className={`text-sm font-medium truncate ${isExecuting ? 'text-purple-100' : 'text-white'}`}>
+              {data.label}
+            </span>
             {showType && (
-              <span className="text-purple-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+              <span className={`text-xs font-medium uppercase tracking-wide ${isExecuting ? 'text-purple-200' : 'text-purple-300'}`}>
+                {data.type}
+              </span>
             )}
           </div>
+          {isExecuting && (
+            <div className="ml-2 flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-400 border-t-transparent"></div>
+            </div>
+          )}
         </div>
         <ParameterChips parameters={data.parameters} />
       </div>
@@ -139,19 +180,33 @@ function AiToolNode({ data }) {
 
 function TemporalNode({ data }) {
   const showType = data.type && data.type !== data.label;
+  const isExecuting = data.isExecuting;
 
   return (
-    <div className="react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
+    <div className={`react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
+      isExecuting
+        ? 'border-yellow-400 bg-yellow-900 shadow-lg shadow-yellow-400/50 animate-pulse'
+        : 'border-gray-600 bg-gray-800'
+    }`}>
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-yellow-400" />
       <div className="flex flex-col gap-1">
         <div className="flex items-center">
           <span className="text-lg mr-2 flex-shrink-0">{data.icon || '⏰'}</span>
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            <span className={`text-sm font-medium truncate ${isExecuting ? 'text-yellow-100' : 'text-white'}`}>
+              {data.label}
+            </span>
             {showType && (
-              <span className="text-yellow-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+              <span className={`text-xs font-medium uppercase tracking-wide ${isExecuting ? 'text-yellow-200' : 'text-yellow-300'}`}>
+                {data.type}
+              </span>
             )}
           </div>
+          {isExecuting && (
+            <div className="ml-2 flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-400 border-t-transparent"></div>
+            </div>
+          )}
         </div>
         <ParameterChips parameters={data.parameters} />
       </div>
@@ -173,6 +228,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
+  const [executingNodeId, setExecutingNodeId] = useState(null);
+  const [executionStep, setExecutionStep] = useState(0);
   const [tools, setTools] = useState([]);
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -260,12 +317,24 @@ function App() {
         }),
       });
 
+      console.log('🔄 Sending request with context:', {
+        hasExistingNodes: nodes.length > 0,
+        existingNodesCount: nodes.length,
+        existingEdgesCount: edges.length,
+        prompt: message
+      });
+
       const data = await response.json();
 
       if (data.pipeline) {
         // Got a complete pipeline
         if (data.pipeline.nodes && data.pipeline.nodes.length > 0) {
-          generateCanvasFromPipeline(data.pipeline);
+          // Check if we should update existing workflow or create new one
+          if (nodes.length > 0) {
+            updateCanvasFromPipeline(data.pipeline);
+          } else {
+            generateCanvasFromPipeline(data.pipeline);
+          }
         }
         const assistantMessage = {
           role: 'assistant',
@@ -322,12 +391,286 @@ function App() {
     setEdges(newEdges);
   };
 
+  const updateCanvasFromPipeline = (pipeline) => {
+    // Check if we have existing nodes to preserve
+    const hasExistingNodes = nodes.length > 0;
+
+    if (!hasExistingNodes) {
+      // No existing nodes, use the original function
+      generateCanvasFromPipeline(pipeline);
+      return;
+    }
+
+    // We have existing nodes, so we need to merge intelligently
+    console.log('🔄 Updating existing workflow with new pipeline');
+    console.log('📊 Current nodes:', nodes.length);
+    console.log('📈 New pipeline nodes:', pipeline.nodes.length);
+
+    // Create a map of existing nodes by ID for quick lookup
+    const existingNodesMap = new Map();
+    nodes.forEach(node => {
+      existingNodesMap.set(node.id, node);
+    });
+
+    // Find new nodes (nodes that don't exist in current workflow)
+    const newNodes = pipeline.nodes.filter(node =>
+      !existingNodesMap.has(node.id)
+    );
+
+    console.log('🆕 New nodes to add:', newNodes.length);
+
+    // Position new nodes intelligently near their connection points
+    const nodesToAdd = newNodes.map((node, index) => {
+      const toolData = tools.find(tool => tool.name === node.name || tool.type === node.type);
+
+      // Find where this node should connect to
+      const incomingEdges = pipeline.edges.filter(edge => edge.to === node.id);
+      let position = { x: 100 + (nodes.length + index) * 200, y: 100 }; // Default position
+
+      if (incomingEdges.length > 0) {
+        // Position near the source node
+        const sourceNodeId = incomingEdges[0].from;
+        const sourceNode = existingNodesMap.get(sourceNodeId) || nodes.find(n => n.id === sourceNodeId);
+
+        if (sourceNode) {
+          // Find if this node has outgoing edges to determine layout direction
+          const outgoingEdges = pipeline.edges.filter(edge => edge.from === node.id);
+
+          if (outgoingEdges.length > 0) {
+            // This node has outputs, position it in the middle of the flow
+            // Check how many total outputs this source node has (including existing nodes)
+            const allOutgoingFromSource = pipeline.edges.filter(edge => edge.from === sourceNodeId);
+            const totalOutputs = allOutgoingFromSource.length;
+
+            // Find all target nodes for this source (both new and existing)
+            const allTargetNodes = allOutgoingFromSource.map(edge => {
+              const targetNode = pipeline.nodes.find(n => n.id === edge.to);
+              if (targetNode) return targetNode;
+
+              // If not in pipeline.nodes, check existing nodes
+              return nodes.find(n => n.id === edge.to);
+            }).filter(Boolean);
+
+            // Find the index of this node in the complete target list
+            const currentTargetIndex = allTargetNodes.findIndex(target =>
+              target.id === node.id
+            );
+
+            // For multiple outputs from same source, stack vertically
+            if (totalOutputs > 1) {
+              // Position multiple outputs vertically under each other
+              const baseX = sourceNode.position.x + 250;
+              const verticalSpacing = 150;
+              const centerY = sourceNode.position.y;
+
+              position = {
+                x: baseX,
+                y: centerY - ((totalOutputs - 1) * verticalSpacing) / 2 + (currentTargetIndex * verticalSpacing)
+              };
+            } else {
+              // Single output, position directly to the right
+              position = {
+                x: sourceNode.position.x + 250,
+                y: sourceNode.position.y
+              };
+            }
+          } else {
+            // This is an endpoint node, position it further right
+            // Check if there are other endpoints from the same source for vertical stacking
+            const allOutgoingFromSource = pipeline.edges.filter(edge => edge.from === sourceNodeId);
+            const totalEndpoints = allOutgoingFromSource.length;
+
+            if (totalEndpoints > 1) {
+              // Multiple endpoints, stack them vertically
+              // Find the index of this node among all targets
+              const currentEndpointIndex = allTargetNodes.findIndex(target =>
+                target.id === node.id
+              );
+
+              const baseX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 250;
+              const verticalSpacing = 150;
+              const centerY = sourceNode.position.y;
+
+              position = {
+                x: baseX,
+                y: centerY - ((totalEndpoints - 1) * verticalSpacing) / 2 + (currentEndpointIndex * verticalSpacing)
+              };
+            } else {
+              // Single endpoint, position directly to the right
+              const rightmostX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 250;
+              position = {
+                x: rightmostX,
+                y: sourceNode.position.y
+              };
+            }
+          }
+        }
+      } else {
+        // No incoming edges, this might be a starting node or standalone node
+        // Position it in a reasonable location on the canvas
+        const existingPositions = nodes.map(n => n.position);
+        const minY = Math.min(...existingPositions.map(p => p.y));
+        const maxY = Math.max(...existingPositions.map(p => p.y));
+        const centerY = (minY + maxY) / 2;
+
+        position = {
+          x: Math.max(...existingPositions.map(p => p.x), 100) + 300,
+          y: centerY - 50 + (index * 100) // Spread vertically if multiple
+        };
+      }
+
+      // Ensure position is within reasonable bounds
+      position.x = Math.max(50, Math.min(position.x, 2000));
+      position.y = Math.max(50, Math.min(position.y, 1000));
+
+      return {
+        id: node.id || `${Date.now()}-${index}`,
+        type: node.type,
+        position,
+        data: {
+          label: node.name || node.type,
+          type: node.type,
+          icon: toolData?.icon,
+          parameters: node.parameters
+        },
+      };
+    });
+
+    // Merge existing nodes with new nodes
+    const allNodes = [...nodes, ...nodesToAdd];
+
+    // Update edges - merge existing edges with new ones
+    const existingEdgesMap = new Map();
+    edges.forEach(edge => {
+      existingEdgesMap.set(edge.id, edge);
+    });
+
+    const newEdges = pipeline.edges.map(edge => ({
+      id: `edge-${edge.from}-${edge.to}`,
+      source: edge.from,
+      target: edge.to,
+    }));
+
+    // Merge edges (new edges take precedence, but avoid duplicates)
+    const allEdges = [...edges];
+    newEdges.forEach(newEdge => {
+      if (!existingEdgesMap.has(newEdge.id)) {
+        allEdges.push(newEdge);
+      }
+    });
+
+    console.log('📊 Final nodes:', allNodes.length);
+    console.log('🔗 Final edges:', allEdges.length);
+
+    setNodes(allNodes);
+    setEdges(allEdges);
+  };
+
   const runWorkflow = () => {
+    if (nodes.length === 0) return;
+
     setIsExecutionRunning(true);
-    // Simulate workflow execution
-    setTimeout(() => {
-      setIsExecutionRunning(false);
-    }, 5000);
+    setExecutingNodeId(null);
+    setExecutionStep(0);
+
+    // Find the starting nodes (nodes with no incoming edges)
+    const nodesWithIncoming = new Set(edges.map(edge => edge.target));
+    const startNodes = nodes.filter(node => !nodesWithIncoming.has(node.id));
+
+    // If no clear start nodes, use the first node
+    const executionOrder = startNodes.length > 0 ? startNodes : [nodes[0]];
+
+    // Build the complete execution order by traversing the graph
+    const processedNodes = new Set();
+    const fullExecutionOrder = [];
+
+    function buildExecutionFlow(nodeId) {
+      if (processedNodes.has(nodeId)) return;
+      processedNodes.add(nodeId);
+
+      const node = nodes.find(n => n.id === nodeId);
+      if (node) {
+        fullExecutionOrder.push(node);
+
+        // Find and process outgoing edges
+        const outgoingEdges = edges.filter(edge => edge.source === nodeId);
+        outgoingEdges.forEach(edge => {
+          buildExecutionFlow(edge.target);
+        });
+      }
+    }
+
+    executionOrder.forEach(startNode => buildExecutionFlow(startNode.id));
+
+    // Animate through each node
+    let currentStep = 0;
+    const totalSteps = fullExecutionOrder.length;
+
+    const executeStep = () => {
+      if (currentStep < totalSteps) {
+        const currentNode = fullExecutionOrder[currentStep];
+
+        // Update nodes to highlight the current executing node
+        setNodes(currentNodes =>
+          currentNodes.map(node => ({
+            ...node,
+            data: {
+              ...node.data,
+              isExecuting: node.id === currentNode.id,
+              executionStep: currentStep
+            }
+          }))
+        );
+
+        setExecutingNodeId(currentNode.id);
+        setExecutionStep(currentStep + 1);
+
+        // Add a chat message about the current step
+        const toolData = tools.find(tool => tool.name === currentNode.data.label || tool.type === currentNode.data.type);
+        const nodeName = currentNode.data.label || currentNode.data.type;
+        const icon = toolData?.icon || '⚙️';
+
+        const executionMessage = {
+          role: 'assistant',
+          content: `🔄 **Step ${currentStep + 1}/${totalSteps}**: ${icon} Processing ${nodeName}...`,
+          timestamp: Date.now(),
+          isExecution: true
+        };
+
+        setChatHistory(prev => [...prev, executionMessage]);
+
+        currentStep++;
+        setTimeout(executeStep, 1500); // 1.5 seconds per step
+      } else {
+        // Workflow complete
+        setIsExecutionRunning(false);
+        setExecutingNodeId(null);
+
+        // Clear execution highlights
+        setNodes(currentNodes =>
+          currentNodes.map(node => ({
+            ...node,
+            data: {
+              ...node.data,
+              isExecuting: false,
+              executionStep: undefined
+            }
+          }))
+        );
+
+        // Add completion message
+        const completionMessage = {
+          role: 'assistant',
+          content: `✅ **Workflow Complete!** All ${totalSteps} steps executed successfully.`,
+          timestamp: Date.now(),
+          isExecution: true
+        };
+
+        setChatHistory(prev => [...prev, completionMessage]);
+      }
+    };
+
+    executeStep();
   };
 
   return (
@@ -351,17 +694,8 @@ function App() {
           </div>
         </header>
 
-        {/* Chat and Canvas Container */}
+        {/* Canvas and Chat Container */}
         <div className="flex-1 flex">
-          {/* Chat Panel */}
-          <div className="w-80 border-r border-gray-700 flex flex-col">
-            <ChatPanel
-              chatHistory={chatHistory}
-              onChatSubmit={handleChatSubmit}
-              isLoading={isLoading}
-            />
-          </div>
-
           {/* Canvas */}
           <div className="flex-1 relative" ref={reactFlowWrapper}>
             <ReactFlow
@@ -386,19 +720,17 @@ function App() {
               <MiniMap />
             </ReactFlow>
           </div>
+
+          {/* Chat Panel */}
+          <div className="w-80 border-l border-gray-700 flex flex-col">
+            <ChatPanel
+              chatHistory={chatHistory}
+              onChatSubmit={handleChatSubmit}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </div>
-
-      {/* Execution View */}
-      <ExecutionView
-        isVisible={isExecutionRunning}
-        logs={[
-          { type: 'info', message: 'Starting workflow execution...', timestamp: Date.now() },
-          ...(isExecutionRunning ? [
-            { type: 'running', message: 'Processing nodes...', timestamp: Date.now() + 1000 },
-          ] : [])
-        ]}
-      />
     </div>
   );
 }
