@@ -1,50 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-const ChatPanel = ({ onSendPrompt }) => {
-  const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState([]);
+function ChatPanel({ chatHistory, onChatSubmit, isLoading, pendingQuestions }) {
+  const [message, setMessage] = useState('');
+  const messagesEndRef = useRef(null);
 
-  const handleSend = () => {
-    if (prompt.trim()) {
-      setMessages([...messages, { type: 'user', text: prompt }]);
-      onSendPrompt(prompt);
-      setPrompt('');
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim() && !isLoading) {
+      onChatSubmit(message.trim());
+      setMessage('');
     }
   };
 
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto mb-4 p-3 bg-dark-primary rounded-lg border border-gray-600">
-        {messages.length === 0 ? (
-          <p className="text-dark-muted">Start chatting to build your workflow...</p>
-        ) : (
-          messages.map((msg, index) => (
-            <div key={index} className={`mb-3 ${msg.type === 'user' ? 'text-right' : 'text-left'}`}>
-              <span className={`inline-block p-3 rounded-lg max-w-xs ${msg.type === 'user' ? 'bg-dark-accent text-white' : 'bg-gray-600 text-dark-text'}`}>
-                {msg.text}
-              </span>
-            </div>
-          ))
+    <div className="flex flex-col h-full bg-n8n-dark">
+      {/* Chat Header */}
+      <div className="p-4 border-b border-gray-700">
+        <h2 className="text-lg font-semibold text-n8n-primary">AI Assistant</h2>
+        {pendingQuestions.length > 0 && (
+          <div className="mt-2 text-sm text-n8n-secondary">
+            Please answer the questions to continue building your workflow
+          </div>
         )}
       </div>
-      <div className="flex">
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe your workflow..."
-          className="flex-1 p-3 bg-dark-primary border border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-dark-accent"
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-        />
-        <button
-          onClick={handleSend}
-          className="px-4 py-3 bg-dark-accent hover:bg-blue-700 rounded-r-lg transition-colors"
-        >
-          Send
-        </button>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {chatHistory.length === 0 && (
+          <div className="text-center text-n8n-secondary mt-8">
+            <div className="mb-4">
+              <span className="text-4xl">🚀</span>
+            </div>
+            <p className="mb-2">Welcome to AI Workflow Canvas!</p>
+            <p className="text-sm">Describe what you want to automate and I'll create a visual workflow for you.</p>
+            <p className="text-sm mt-2">Try: "Get updates from Google Sheets every week and send to Slack"</p>
+          </div>
+        )}
+
+        {chatHistory.map((msg, index) => (
+          <div key={index} className={`chat-message ${msg.role}`}>
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs opacity-70">
+                {msg.role === 'user' ? 'You' : 'Assistant'}
+              </span>
+              <span className="text-xs opacity-50">
+                {formatTimestamp(msg.timestamp)}
+              </span>
+            </div>
+            <div className="whitespace-pre-wrap">{msg.content}</div>
+            {msg.isQuestion && (
+              <div className="mt-3 p-3 bg-n8n-darker rounded-md border border-gray-600">
+                <div className="text-sm text-n8n-secondary mb-2">Questions to answer:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {pendingQuestions.map((question, qIndex) => (
+                    <li key={qIndex} className="text-sm">{question}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="chat-message assistant">
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Thinking...</span>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Input */}
+      <div className="p-4 border-t border-gray-700">
+        <form onSubmit={handleSubmit}>
+          <div className="flex space-x-2">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={
+                pendingQuestions.length > 0
+                  ? "Answer the questions above..."
+                  : "Describe what you want to automate..."
+              }
+              className="flex-1 chat-input resize-none"
+              rows={3}
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!message.trim() || isLoading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-md text-sm font-medium self-end"
+            >
+              Send
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
-};
+}
 
 export default ChatPanel;

@@ -1,118 +1,319 @@
-import React, { useState, useCallback } from 'react';
-import ReactFlow, { addEdge, Background, Controls, MiniMap } from 'reactflow';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactFlow, {
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  Background,
+  MiniMap,
+} from 'reactflow';
 import 'reactflow/dist/style.css';
-import { motion } from 'framer-motion';
-import axios from 'axios';
+
 import ChatPanel from './components/ChatPanel';
-import Toolbox from './components/Toolbox';
+import ToolsSidebar from './components/ToolsSidebar';
+import ExecutionView from './components/ExecutionView';
+
+const initialNodes = [];
+const initialEdges = [];
+
+// Custom Node Components
+function EcosystemNode({ data }) {
+  return (
+    <div className="react-flow__node-ecosystem">
+      <div className="flex items-center">
+        <span className="text-lg mr-2">{data.icon || '🌐'}</span>
+        <span>{data.label}</span>
+      </div>
+    </div>
+  );
+}
+
+function UtilityNode({ data }) {
+  return (
+    <div className="react-flow__node-utility">
+      <div className="flex items-center">
+        <span className="text-lg mr-2">{data.icon || '⚙️'}</span>
+        <span>{data.label}</span>
+      </div>
+    </div>
+  );
+}
+
+function AiToolNode({ data }) {
+  return (
+    <div className="react-flow__node-aiTool">
+      <div className="flex items-center">
+        <span className="text-lg mr-2">{data.icon || '🤖'}</span>
+        <span>{data.label}</span>
+      </div>
+    </div>
+  );
+}
+
+function TemporalNode({ data }) {
+  return (
+    <div className="react-flow__node-temporal">
+      <div className="flex items-center">
+        <span className="text-lg mr-2">{data.icon || '⏰'}</span>
+        <span>{data.label}</span>
+      </div>
+    </div>
+  );
+}
 
 const nodeTypes = {
-  ecosystem: { background: '#6366f1', color: '#fff' }, // Updated indigo
-  utility: { background: '#10b981', color: '#fff' }, // Green
-  aiTool: { background: '#f59e0b', color: '#fff' }, // Amber
-  temporal: { background: '#ef4444', color: '#fff' }, // Red
+  ecosystem: EcosystemNode,
+  utility: UtilityNode,
+  aiTool: AiToolNode,
+  temporal: TemporalNode,
 };
 
 function App() {
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [schedule, setSchedule] = useState(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [pendingQuestions, setPendingQuestions] = useState([]);
+  const [isExecutionRunning, setIsExecutionRunning] = useState(false);
+  const [tools, setTools] = useState([]);
+  const reactFlowWrapper = useRef(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
+  // Load tools from API on mount
+  useEffect(() => {
+    fetchTools();
+  }, []);
+
+  const fetchTools = async () => {
+    try {
+      const response = await fetch('http://localhost:3333/tools');
+      const tools = await response.json();
+      setTools(tools);
+    } catch (error) {
+      console.error('Failed to fetch tools:', error);
+    }
+  };
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
 
-  const addNode = (type, name) => {
-    const newNode = {
-      id: `${nodes.length + 1}`,
-      type: 'default',
-      position: { x: Math.random() * 400, y: Math.random() * 400 },
-      data: { label: name, type },
-      style: nodeTypes[type] || { background: '#6b7280', color: '#fff' },
-    };
-    setNodes((nds) => [...nds, newNode]);
-  };
+  const onDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
 
-  const generatePipeline = async (prompt) => {
-    try {
-      const response = await axios.post('http://localhost:3333/generate-pipeline', { prompt });
-      const { nodes: newNodes, edges: newEdges, schedule: newSchedule } = response.data.pipeline;
+  const onDrop = useCallback(
+    (event) => {
+      event.preventDefault();
 
-      // Clear previous nodes/edges for a fresh pipeline (or comment out to append)
-      setNodes([]);
-      setEdges([]);
+      if (!reactFlowInstance) return;
 
-      // Add all new nodes with proper positioning and animation
-      const updatedNodes = newNodes.map((node, index) => ({
-        id: node.id || `${index + 1}`,
-        type: 'default',
-        position: { x: 100 + index * 200, y: 100 + (index % 2) * 100 }, // Better positioning
-        data: { label: node.name, type: node.type },
-        style: nodeTypes[node.type] || { background: '#6b7280', color: '#fff' },
-      }));
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const type = event.dataTransfer.getData('application/reactflow/type');
+      const name = event.dataTransfer.getData('application/reactflow/name');
+      const toolType = event.dataTransfer.getData('application/reactflow/toolType');
 
-      // Transform edges to React Flow format
-      const updatedEdges = newEdges.map((edge, index) => ({
-        id: `e${edge.from}-${edge.to}`, // Unique ID for React Flow
-        source: edge.from,
-        target: edge.to,
-        type: 'smoothstep', // Curved edges for better visuals
-        animated: true, // Optional animation for edges
-      }));
+      if (typeof type === 'undefined' || !type) {
+        return;
+      }
 
-      setNodes(updatedNodes);
-      setEdges(updatedEdges);
-      setSchedule(newSchedule);
-
-      // Optional: Animate nodes appearing one by one if you want that effect
-      updatedNodes.forEach((_, index) => {
-        setTimeout(() => {
-          // Could add a class or state for animation here if needed
-        }, index * 300);
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
       });
+
+      const newNode = {
+        id: `${nodes.length + 1}`,
+        type: toolType,
+        position,
+        data: { label: name },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, nodes.length, setNodes]
+  );
+
+  const handleChatSubmit = async (message) => {
+    setIsLoading(true);
+
+    // Add user message to chat
+    const userMessage = { role: 'user', content: message, timestamp: Date.now() };
+    setChatHistory(prev => [...prev, userMessage]);
+
+    try {
+      let context = 'new_workflow';
+      if (pendingQuestions.length > 0) {
+        context = 'answering_question';
+      } else if (nodes.length > 0) {
+        context = 'modify_workflow';
+      }
+
+      const response = await fetch('http://localhost:3333/generate-pipeline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: message,
+          context,
+          existingNodes: nodes,
+          existingEdges: edges,
+          pendingQuestions,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.questions && data.questions.length > 0) {
+        // Need to ask questions for missing parameters
+        setPendingQuestions(data.questions);
+        const assistantMessage = {
+          role: 'assistant',
+          content: data.message,
+          timestamp: Date.now(),
+          isQuestion: true
+        };
+        setChatHistory(prev => [...prev, assistantMessage]);
+      } else if (data.pipeline) {
+        // Got a complete pipeline
+        setPendingQuestions([]);
+        if (data.pipeline.nodes && data.pipeline.nodes.length > 0) {
+          generateCanvasFromPipeline(data.pipeline);
+        }
+        const assistantMessage = {
+          role: 'assistant',
+          content: data.message || 'Workflow generated successfully!',
+          timestamp: Date.now()
+        };
+        setChatHistory(prev => [...prev, assistantMessage]);
+      } else {
+        // Fallback for text responses
+        const assistantMessage = {
+          role: 'assistant',
+          content: data.message || 'I understood your request but need more information to create a complete workflow.',
+          timestamp: Date.now()
+        };
+        setChatHistory(prev => [...prev, assistantMessage]);
+      }
     } catch (error) {
-      console.error('Error generating pipeline:', error);
+      console.error('Error sending message:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: Date.now()
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const generateCanvasFromPipeline = (pipeline) => {
+    // Find the tool data for each node to get icons
+    const newNodes = pipeline.nodes.map((node, index) => {
+      const toolData = tools.find(tool => tool.name === node.name || tool.type === node.type);
+      return {
+        id: node.id || `${Date.now()}-${index}`,
+        type: node.type,
+        position: { x: 100 + index * 200, y: 100 },
+        data: {
+          label: node.name || node.type,
+          icon: toolData?.icon,
+          parameters: node.parameters
+        },
+      };
+    });
+
+    const newEdges = pipeline.edges.map(edge => ({
+      id: `edge-${edge.from}-${edge.to}`,
+      source: edge.from,
+      target: edge.to,
+    }));
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+  };
+
+  const runWorkflow = () => {
+    setIsExecutionRunning(true);
+    // Simulate workflow execution
+    setTimeout(() => {
+      setIsExecutionRunning(false);
+    }, 5000);
+  };
+
   return (
-    <div className="h-screen bg-dark-primary text-dark-text flex">
-      {/* Chat Panel */}
-      <div className="w-1/4 bg-dark-secondary p-4 border-r border-gray-600 shadow-lg animate-slide-in">
-        <h2 className="text-xl font-bold mb-4 text-dark-accent">Chat & Prompts</h2>
-        <ChatPanel onSendPrompt={generatePipeline} />
-      </div>
+    <div className="flex h-screen bg-n8n-dark text-n8n-primary">
+      {/* Tools Sidebar */}
+      <ToolsSidebar tools={tools} />
 
-      {/* Workflow Canvas */}
-      <div className="flex-1 relative bg-dark-primary">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onConnect={onConnect}
-          fitView
-          className="bg-dark-primary"
-        >
-          <Background variant="dots" gap={12} size={1} />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
-        {schedule && (
-          <div className="absolute top-4 right-4 bg-dark-secondary p-3 rounded-lg shadow-md animate-fade-in">
-            <h3 className="font-semibold text-dark-accent">Schedule</h3>
-            <p className="text-sm">Interval: {schedule.interval}</p>
-            <p className="text-sm">Next Run: {schedule.next_run}</p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-n8n-darker border-b border-gray-700 p-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">AI Workflow Canvas</h1>
+            <button
+              onClick={runWorkflow}
+              disabled={isExecutionRunning || nodes.length === 0}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-md text-sm font-medium"
+            >
+              {isExecutionRunning ? 'Running...' : 'Run Workflow'}
+            </button>
           </div>
-        )}
+        </header>
+
+        {/* Chat and Canvas Container */}
+        <div className="flex-1 flex">
+          {/* Chat Panel */}
+          <div className="w-80 border-r border-gray-700 flex flex-col">
+            <ChatPanel
+              chatHistory={chatHistory}
+              onChatSubmit={handleChatSubmit}
+              isLoading={isLoading}
+              pendingQuestions={pendingQuestions}
+            />
+          </div>
+
+          {/* Canvas */}
+          <div className="flex-1 relative" ref={reactFlowWrapper}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onInit={setReactFlowInstance}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              nodeTypes={nodeTypes}
+              fitView
+              attributionPosition="top-right"
+            >
+              <Controls />
+              <Background />
+              <MiniMap />
+            </ReactFlow>
+          </div>
+        </div>
       </div>
 
-      {/* Toolbox */}
-      <div className="w-64 bg-dark-secondary p-4 border-l border-gray-600 shadow-lg animate-slide-in">
-        <h2 className="text-xl font-bold mb-4 text-dark-accent">Toolbox</h2>
-        <Toolbox onAddNode={addNode} />
-      </div>
+      {/* Execution View */}
+      <ExecutionView
+        isVisible={isExecutionRunning}
+        logs={[
+          { type: 'info', message: 'Starting workflow execution...', timestamp: Date.now() },
+          ...(isExecutionRunning ? [
+            { type: 'running', message: 'Processing nodes...', timestamp: Date.now() + 1000 },
+          ] : [])
+        ]}
+      />
     </div>
   );
 }
+
 
 export default App;

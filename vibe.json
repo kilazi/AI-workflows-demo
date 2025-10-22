@@ -1,0 +1,117 @@
+{
+    "tools": [
+      {
+        "type": "ecosystem",
+        "name": "Google Sheets",
+        "icon": "📊",
+        "color": "bg-dark-node-ecosystem",
+        "description": "Connects to Google Sheets for reading and writing spreadsheet data with automated synchronization",
+        "tags": ["data", "spreadsheet", "google", "sync", "automation"]
+      },
+      {
+        "type": "ecosystem",
+        "name": "Slack",
+        "icon": "💬",
+        "color": "bg-dark-node-ecosystem",
+        "description": "Integrates with Slack for sending messages, notifications, and managing channels automatically",
+        "tags": ["communication", "messaging", "team", "notification", "collaboration"]
+      },
+      {
+        "type": "ecosystem",
+        "name": "Gmail",
+        "icon": "✉️",
+        "color": "bg-dark-node-ecosystem",
+        "description": "Connects to Gmail for sending emails, managing inbox, and automating email workflows",
+        "tags": ["email", "communication", "google", "automation", "inbox"]
+      },
+      {
+        "type": "ecosystem",
+        "name": "Notion",
+        "icon": "📚",
+        "color": "bg-dark-node-ecosystem",
+        "description": "Integrates with Notion workspaces for creating, updating, and managing pages and databases",
+        "tags": ["productivity", "documentation", "workspace", "database", "knowledge"]
+      },
+      {
+        "type": "ecosystem",
+        "name": "Jira",
+        "icon": "🎯",
+        "color": "bg-dark-node-ecosystem",
+        "description": "Connects to Jira for project management, issue tracking, and workflow automation",
+        "tags": ["project", "management", "tracking", "development", "agile"]
+      },
+      {
+        "type": "utility",
+        "name": "Webhook",
+        "icon": "🔗",
+        "color": "bg-dark-node-utility",
+        "description": "Receives HTTP callbacks from external services and triggers downstream actions",
+        "tags": ["integration", "http", "callback", "external", "trigger"]
+      },
+      {
+        "type": "utility",
+        "name": "API Call",
+        "icon": "🌐",
+        "color": "bg-dark-node-utility",
+        "description": "Makes HTTP requests to external APIs and services with configurable endpoints and parameters",
+        "tags": ["http", "external", "integration", "request", "automation"]
+      },
+      {
+        "type": "utility",
+        "name": "Condition",
+        "icon": "🔀",
+        "color": "bg-dark-node-utility",
+        "description": "Evaluates conditions and routes workflow execution based on specified criteria",
+        "tags": ["logic", "decision", "routing", "control", "automation"]
+      },
+      {
+        "type": "utility",
+        "name": "Calculation",
+        "icon": "🧮",
+        "color": "bg-dark-node-utility",
+        "description": "Performs mathematical calculations, data transformations, and statistical operations",
+        "tags": ["math", "computation", "data", "analysis", "transformation"]
+      },
+      {
+        "type": "aiTool",
+        "name": "Brainstorm",
+        "icon": "💡",
+        "color": "bg-dark-node-aiTool",
+        "description": "Uses LLM to generate creative ideas and solutions based on provided data with specific user prompts",
+        "tags": ["creativity", "ideas", "innovation", "brainstorming", "ai"]
+      },
+      {
+        "type": "aiTool",
+        "name": "Summarize",
+        "icon": "📝",
+        "color": "bg-dark-node-aiTool",
+        "description": "Uses AI to condense and extract key information from large amounts of text or data",
+        "tags": ["summary", "condense", "extract", "key-points", "ai"]
+      },
+      {
+        "type": "aiTool",
+        "name": "Select",
+        "icon": "🎯",
+        "color": "bg-dark-node-aiTool",
+        "description": "Uses AI to choose the best option from multiple alternatives based on specified criteria",
+        "tags": ["decision", "choice", "evaluation", "best-option", "ai"]
+      },
+      {
+        "type": "aiTool",
+        "name": "Evaluate",
+        "icon": "⚖️",
+        "color": "bg-dark-node-aiTool",
+        "description": "Uses AI to assess and score content, ideas, or solutions against defined parameters",
+        "tags": ["assessment", "scoring", "analysis", "judgment", "ai"]
+      },
+      {
+        "type": "temporal",
+        "name": "Schedule",
+        "icon": "⏰",
+        "color": "bg-dark-node-temporal",
+        "description": "Triggers workflows at specified times, intervals, or based on calendar events",
+        "tags": ["timing", "automation", "recurring", "calendar", "execution"]
+      }
+    ]
+  }
+  

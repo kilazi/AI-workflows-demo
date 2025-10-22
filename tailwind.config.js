@@ -7,23 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        dark: {
-          primary: '#0f0f0f', // Deeper black for main bg
-          secondary: '#1e1e1e', // Dark gray for panels
-          accent: '#3b82f6', // Blue for highlights
-          text: '#f3f4f6', // Light gray for text
-          muted: '#9ca3af', // Muted gray
-          node: {
-            ecosystem: '#6366f1', // Indigo for ecosystem nodes
-            utility: '#10b981', // Green for utilities
-            aiTool: '#f59e0b', // Amber for AI tools
-            temporal: '#ef4444', // Red for temporal
-          }
-        }
-      },
-      animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-in': 'slideIn 0.3s ease-out',
+        'n8n-dark': '#1a1a1a',
+        'n8n-darker': '#0f0f0f',
+        'n8n-light': '#2a2a2a',
+        'n8n-primary': '#ffffff',
+        'n8n-secondary': '#a0a0a0',
+        'n8n-muted': '#707070',
       }
     },
   },
