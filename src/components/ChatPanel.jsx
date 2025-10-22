@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-function ChatPanel({ chatHistory, onChatSubmit, isLoading, pendingQuestions }) {
+function ChatPanel({ chatHistory, onChatSubmit, isLoading }) {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -29,11 +29,6 @@ function ChatPanel({ chatHistory, onChatSubmit, isLoading, pendingQuestions }) {
       {/* Chat Header */}
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-lg font-semibold text-n8n-primary">AI Assistant</h2>
-        {pendingQuestions.length > 0 && (
-          <div className="mt-2 text-sm text-n8n-secondary">
-            Please answer the questions to continue building your workflow
-          </div>
-        )}
       </div>
 
       {/* Chat Messages */}
@@ -60,16 +55,6 @@ function ChatPanel({ chatHistory, onChatSubmit, isLoading, pendingQuestions }) {
               </span>
             </div>
             <div className="whitespace-pre-wrap">{msg.content}</div>
-            {msg.isQuestion && (
-              <div className="mt-3 p-3 bg-n8n-darker rounded-md border border-gray-600">
-                <div className="text-sm text-n8n-secondary mb-2">Questions to answer:</div>
-                <ul className="list-disc list-inside space-y-1">
-                  {pendingQuestions.map((question, qIndex) => (
-                    <li key={qIndex} className="text-sm">{question}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         ))}
 
@@ -92,11 +77,7 @@ function ChatPanel({ chatHistory, onChatSubmit, isLoading, pendingQuestions }) {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={
-                pendingQuestions.length > 0
-                  ? "Answer the questions above..."
-                  : "Describe what you want to automate..."
-              }
+              placeholder="Describe what you want to automate..."
               className="flex-1 chat-input resize-none"
               rows={3}
               disabled={isLoading}

@@ -14,6 +14,8 @@ app.use(express.json());
 const PORT = 3333;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+console.log('🔑 OpenAI API Key configured:', !!OPENAI_API_KEY);
+
 // Load tools from vibe.json
 const toolsPath = path.join(process.cwd(), 'vibe.json');
 console.log('Loading tools from:', toolsPath);
@@ -34,13 +36,21 @@ app.get('/tools', (req, res) => {
 });
 
 app.post('/generate-pipeline', async (req, res) => {
+  console.log('🚀 /generate-pipeline called');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
   const { prompt, existingNodes = [], existingEdges = [], context = 'new_workflow' } = req.body;
 
   if (!prompt) {
+    console.log('❌ No prompt provided');
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
   try {
+    console.log('📝 Processing prompt:', prompt);
+    console.log('🔍 Context:', context);
+    console.log('📊 Existing nodes:', existingNodes.length);
+    console.log('🔗 Existing edges:', existingEdges.length);
     // Create a comprehensive tools description for the AI
     const toolsDescription = toolsData.tools.map(tool =>
       `${tool.name} (${tool.type}): ${tool.description}. Tags: ${tool.tags.join(', ')}`
@@ -57,40 +67,44 @@ ${existingEdges.length > 0 ? `Connections: ${existingEdges.map(edge => `${edge.s
 `;
     }
 
-    // Enhanced system prompt for contextual conversation
+    // Simple system prompt without contextual conversation
     const systemPrompt = `You are an AI that converts natural language prompts into structured workflow pipelines. You have access to the following tools:
 
 ${toolsDescription}
 
-Your goal is to understand user intent and create executable workflows. When users provide incomplete information, ask clarifying questions rather than making assumptions.
+Your goal is to understand user intent and create executable workflows. Make reasonable assumptions for missing parameters and create complete workflows.
 
-IMPORTANT INSTRUCTIONS:
-1. If this is a new workflow (${context === 'new_workflow'}), create a complete pipeline from scratch
-2. If modifying existing workflow (${context === 'modify_workflow'}), analyze current nodes and suggest additions/modifications
-3. If answering questions (${context === 'answering_question'}), use the provided answers to complete the workflow
-
-When information is missing for tool parameters, return a response with:
-- "questions": [array of specific questions to ask the user]
-- "message": [explanatory message for the user]
-- "pipeline": [partial pipeline if some parts are complete]
-
-Always ask specific questions based on tool requirements, not generic ones.
+IMPORTANT: Always create connections between nodes using edges! If you create multiple nodes, you MUST connect them in a logical flow.
 
 Node format: {"id": "unique_id", "type": "tool_type", "name": "tool_name", "parameters": {...}}
 Edge format: {"from": "source_id", "to": "target_id"}
 Schedule format: {"interval": "daily/weekly/monthly", "next_run": "ISO_date", "timezone": "optional"}
 
-Example complete response: {"nodes": [{"id": "1", "type": "GSheets", "name": "Google Sheets", "parameters": {"spreadsheet_id": "xyz"}}], "edges": [{"from": "1", "to": "2"}], "schedule": {"interval": "weekly", "next_run": "2025-10-27T09:00:00"}}
+Always return ONLY a complete JSON response with nodes, edges, and schedule. Do NOT include any explanation or markdown formatting. Make up reasonable default values for any missing parameters.
 
-Example with questions: {"questions": ["Which Slack channel do you want to send to?", "What spreadsheet should I read from?"], "message": "I need some additional information to complete your workflow. Please answer these questions:", "pipeline": {"nodes": [], "edges": [], "schedule": {}}}
+Return ONLY the JSON object, nothing else.
+
+Example response: {"nodes": [{"id": "1", "type": "GSheets", "name": "Google Sheets", "parameters": {"spreadsheet_id": "example_sheet_id"}}, {"id": "2", "type": "Slack", "name": "Slack", "parameters": {"channel": "general"}}], "edges": [{"from": "1", "to": "2"}], "schedule": {"interval": "weekly", "next_run": "2025-10-27T09:00:00"}}
 
 ${existingWorkflowContext ? `EXISTING WORKFLOW CONTEXT:
 ${existingWorkflowContext}` : ''}`;
 
+    // Check if OpenAI API key is available
+    if (!OPENAI_API_KEY) {
+      console.log('❌ OpenAI API key not configured');
+      return res.status(500).json({
+        error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.'
+      });
+    }
+
+    console.log('🤖 Calling OpenAI API...');
+    console.log('🔧 System prompt length:', systemPrompt.length);
+    console.log('💬 User prompt:', prompt);
+
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4', // Using GPT-4 as proxy for ChatGPT-5
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -107,31 +121,90 @@ ${existingWorkflowContext}` : ''}`;
       }
     );
 
+    console.log('✅ OpenAI API call successful');
+    console.log('📄 Response status:', response.status);
+
     const aiResponse = response.data.choices[0].message.content;
+    console.log('🤖 AI Response:', aiResponse);
 
     try {
       // Try to parse as JSON first
+      console.log('🔍 Attempting to parse AI response as JSON...');
       const parsedResponse = JSON.parse(aiResponse);
 
-      // Check if this is a response with questions or a complete pipeline
-      if (parsedResponse.questions && parsedResponse.questions.length > 0) {
+      // Check if this is a complete pipeline
+      console.log('📋 Parsed response:', JSON.stringify(parsedResponse, null, 2));
+
+      if (parsedResponse.nodes && parsedResponse.nodes.length > 0) {
+        console.log('✅ Pipeline nodes received');
+
+        // Ensure we have edges - create them if missing
+        let finalEdges = parsedResponse.edges || [];
+        if (parsedResponse.nodes.length > 1 && (!finalEdges || finalEdges.length === 0)) {
+          console.log('🔗 Creating default edges between nodes...');
+          // Create a linear flow: 1 -> 2 -> 3 -> ...
+          finalEdges = parsedResponse.nodes.slice(0, -1).map((node, index) => ({
+            from: node.id || `${index + 1}`,
+            to: parsedResponse.nodes[index + 1].id || `${index + 2}`
+          }));
+        }
+
+        const completePipeline = {
+          ...parsedResponse,
+          edges: finalEdges
+        };
+
+        console.log('✅ Complete pipeline with edges:', JSON.stringify(completePipeline, null, 2));
+
         res.json({
-          questions: parsedResponse.questions,
-          message: parsedResponse.message || 'I need some additional information to complete your workflow.',
-          pipeline: parsedResponse.pipeline || { nodes: [], edges: [], schedule: {} }
-        });
-      } else if (parsedResponse.nodes && parsedResponse.edges) {
-        // Complete pipeline
-        res.json({
-          pipeline: parsedResponse,
+          pipeline: completePipeline,
           message: 'Workflow generated successfully!'
         });
       } else {
+        console.log('❌ Invalid response format - no nodes found');
         throw new Error('Invalid response format');
       }
     } catch (parseError) {
-      // If parsing fails, it might be a text response (fallback)
+      // If parsing fails, try to extract JSON from text response
+      console.log('⚠️ JSON parsing failed, trying to extract JSON from text response');
+      console.log('Parse error:', parseError.message);
       console.log('AI returned text response:', aiResponse);
+
+      try {
+        // Look for JSON code blocks in the response
+        const jsonMatch = aiResponse.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          const extractedJson = jsonMatch[1];
+          const parsedResponse = JSON.parse(extractedJson);
+          console.log('✅ Extracted JSON from text response:', JSON.stringify(parsedResponse, null, 2));
+
+          if (parsedResponse.nodes && parsedResponse.nodes.length > 0) {
+            let finalEdges = parsedResponse.edges || [];
+            if (parsedResponse.nodes.length > 1 && (!finalEdges || finalEdges.length === 0)) {
+              console.log('🔗 Creating default edges between extracted nodes...');
+              finalEdges = parsedResponse.nodes.slice(0, -1).map((node, index) => ({
+                from: node.id || `${index + 1}`,
+                to: parsedResponse.nodes[index + 1].id || `${index + 2}`
+              }));
+            }
+
+            const completePipeline = {
+              ...parsedResponse,
+              edges: finalEdges
+            };
+
+            res.json({
+              pipeline: completePipeline,
+              message: 'Workflow generated successfully!'
+            });
+            return;
+          }
+        }
+      } catch (extractError) {
+        console.log('❌ Failed to extract JSON from text response:', extractError.message);
+      }
+
+      // Final fallback - text response
       res.json({
         pipeline: {
           nodes: [],
@@ -142,7 +215,12 @@ ${existingWorkflowContext}` : ''}`;
       });
     }
   } catch (error) {
-    console.error('Error calling OpenAI API:', error);
+    console.error('❌ Error in /generate-pipeline:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     res.status(500).json({ error: 'Failed to generate pipeline' });
   }
 });

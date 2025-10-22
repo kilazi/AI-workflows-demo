@@ -135,36 +135,31 @@ body {
   margin-right: 40px;
 }
 
-/* Canvas styling */
+/* Canvas styling - ReactFlow handles styling */
 .react-flow__node {
-  border-radius: 8px;
-  color: #ffffff;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  padding: 8px 12px;
   min-width: 120px;
   text-align: center;
+  transition: all 0.2s ease;
 }
 
-.react-flow__node-ecosystem {
-  background-color: #ff6b35;
-  border: 2px solid #e55a2b;
+.react-flow__node:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.react-flow__node-utility {
-  background-color: #ffcc02;
-  border: 2px solid #e6b800;
-  color: #000;
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  border: 2px solid #ffffff !important;
+  border-radius: 50% !important;
 }
 
-.react-flow__node-aiTool {
-  background-color: #9b59b6;
-  border: 2px solid #8e44ad;
-}
-
-.react-flow__node-temporal {
-  background-color: #3498db;
-  border: 2px solid #2980b9;
+.react-flow__handle:hover {
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
 }
 
 .react-flow__edge-path {

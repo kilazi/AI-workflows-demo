@@ -17,46 +17,56 @@ const initialNodes = [];
 const initialEdges = [];
 
 // Custom Node Components
+import { Handle, Position } from 'reactflow';
+
 function EcosystemNode({ data }) {
   return (
-    <div className="react-flow__node-ecosystem">
+    <div className="react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-400" />
       <div className="flex items-center">
         <span className="text-lg mr-2">{data.icon || '🌐'}</span>
-        <span>{data.label}</span>
+        <span className="text-white text-sm font-medium">{data.label}</span>
       </div>
+      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-400" />
     </div>
   );
 }
 
 function UtilityNode({ data }) {
   return (
-    <div className="react-flow__node-utility">
+    <div className="react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-green-400" />
       <div className="flex items-center">
         <span className="text-lg mr-2">{data.icon || '⚙️'}</span>
-        <span>{data.label}</span>
+        <span className="text-white text-sm font-medium">{data.label}</span>
       </div>
+      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-green-400" />
     </div>
   );
 }
 
 function AiToolNode({ data }) {
   return (
-    <div className="react-flow__node-aiTool">
+    <div className="react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-purple-400" />
       <div className="flex items-center">
         <span className="text-lg mr-2">{data.icon || '🤖'}</span>
-        <span>{data.label}</span>
+        <span className="text-white text-sm font-medium">{data.label}</span>
       </div>
+      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-purple-400" />
     </div>
   );
 }
 
 function TemporalNode({ data }) {
   return (
-    <div className="react-flow__node-temporal">
+    <div className="react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+      <Handle type="target" position={Position.Left} className="w-2 h-2 bg-yellow-400" />
       <div className="flex items-center">
         <span className="text-lg mr-2">{data.icon || '⏰'}</span>
-        <span>{data.label}</span>
+        <span className="text-white text-sm font-medium">{data.label}</span>
       </div>
+      <Handle type="source" position={Position.Right} className="w-2 h-2 bg-yellow-400" />
     </div>
   );
 }
@@ -73,7 +83,6 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
-  const [pendingQuestions, setPendingQuestions] = useState([]);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [tools, setTools] = useState([]);
   const reactFlowWrapper = useRef(null);
@@ -144,13 +153,6 @@ function App() {
     setChatHistory(prev => [...prev, userMessage]);
 
     try {
-      let context = 'new_workflow';
-      if (pendingQuestions.length > 0) {
-        context = 'answering_question';
-      } else if (nodes.length > 0) {
-        context = 'modify_workflow';
-      }
-
       const response = await fetch('http://localhost:3333/generate-pipeline', {
         method: 'POST',
         headers: {
@@ -158,28 +160,15 @@ function App() {
         },
         body: JSON.stringify({
           prompt: message,
-          context,
           existingNodes: nodes,
           existingEdges: edges,
-          pendingQuestions,
         }),
       });
 
       const data = await response.json();
 
-      if (data.questions && data.questions.length > 0) {
-        // Need to ask questions for missing parameters
-        setPendingQuestions(data.questions);
-        const assistantMessage = {
-          role: 'assistant',
-          content: data.message,
-          timestamp: Date.now(),
-          isQuestion: true
-        };
-        setChatHistory(prev => [...prev, assistantMessage]);
-      } else if (data.pipeline) {
+      if (data.pipeline) {
         // Got a complete pipeline
-        setPendingQuestions([]);
         if (data.pipeline.nodes && data.pipeline.nodes.length > 0) {
           generateCanvasFromPipeline(data.pipeline);
         }
@@ -274,7 +263,6 @@ function App() {
               chatHistory={chatHistory}
               onChatSubmit={handleChatSubmit}
               isLoading={isLoading}
-              pendingQuestions={pendingQuestions}
             />
           </div>
 
@@ -292,6 +280,10 @@ function App() {
               nodeTypes={nodeTypes}
               fitView
               attributionPosition="top-right"
+              connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
+              connectionLineType="smoothstep"
+              snapToGrid={true}
+              snapGrid={[15, 15]}
             >
               <Controls />
               <Background />
