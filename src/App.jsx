@@ -92,6 +92,7 @@ function EcosystemNode({ data }) {
   console.log('🔍 EcosystemNode parameters:', data.parameters);
   console.log('🔍 EcosystemNode isFirstNode:', data.isFirstNode);
   console.log('🔍 EcosystemNode schedule:', data.schedule);
+  console.log('🔍 EcosystemNode isExecuting:', isExecuting);
 
   return (
     <div className={`react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -150,6 +151,8 @@ function UtilityNode({ data }) {
   const showType = data.type && data.type !== data.label;
   const isExecuting = data.isExecuting;
   const isFirstNode = data.isFirstNode;
+  
+  console.log('🔍 UtilityNode isExecuting:', isExecuting);
 
   return (
     <div className={`react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -361,6 +364,13 @@ function App() {
   const [executionStep, setExecutionStep] = useState(0);
   const [tools, setTools] = useState([]);
   const [workflowSchedule, setWorkflowSchedule] = useState(null);
+  const [parameterCollection, setParameterCollection] = useState({
+    isActive: false,
+    currentNodeIndex: 0,
+    currentNodeType: null,
+    collectedParameters: {},
+    pendingPipeline: null
+  });
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
@@ -377,6 +387,260 @@ function App() {
     } catch (error) {
       console.error('Failed to fetch tools:', error);
     }
+  };
+
+  // Check if parameters are missing and start collection flow
+  const checkAndCollectParameters = (pipeline) => {
+    const missingParams = [];
+    
+    pipeline.nodes.forEach((node, index) => {
+      const toolData = tools.find(tool => tool.name === node.name || tool.type === node.type);
+      if (toolData && toolData.requiredParameters) {
+        const requiredParams = Object.keys(toolData.requiredParameters);
+        const providedParams = Object.keys(node.parameters || {});
+        const missing = requiredParams.filter(param => !providedParams.includes(param));
+        
+        if (missing.length > 0) {
+          missingParams.push({
+            nodeIndex: index,
+            nodeType: node.type,
+            nodeName: node.name,
+            missingParameters: missing,
+            toolData: toolData
+          });
+        }
+      }
+    });
+
+    if (missingParams.length > 0) {
+      // Start parameter collection flow
+      setParameterCollection({
+        isActive: true,
+        currentNodeIndex: 0,
+        currentNodeType: missingParams[0].nodeType,
+        collectedParameters: {},
+        pendingPipeline: pipeline,
+        missingParams: missingParams
+      });
+      
+      // Ask for first parameter
+      askForParameter(missingParams[0]);
+      return true; // Indicates we're collecting parameters
+    }
+    
+    return false; // No missing parameters
+  };
+
+  // Ask for a specific parameter
+  const askForParameter = (missingParam) => {
+    const toolData = missingParam.toolData;
+    const firstMissingParam = missingParam.missingParameters[0];
+    const paramDescription = toolData.requiredParameters[firstMissingParam];
+    
+    const question = `I need some information to complete your workflow. For the **${missingParam.nodeName}** node, please provide the **${firstMissingParam}**: ${paramDescription}`;
+    
+    const assistantMessage = {
+      role: 'assistant',
+      content: question,
+      timestamp: Date.now()
+    };
+    
+    setChatHistory(prev => [...prev, assistantMessage]);
+  };
+
+  // Handle parameter response during collection flow
+  const handleParameterResponse = async (userResponse) => {
+    const { missingParams, currentNodeIndex, collectedParameters } = parameterCollection;
+    const currentMissingParam = missingParams[currentNodeIndex];
+    
+    if (!currentMissingParam) {
+      // No more parameters to collect, create the workflow
+      await createWorkflowWithCollectedParameters();
+      return;
+    }
+
+    const firstMissingParam = currentMissingParam.missingParameters[0];
+    const updatedCollectedParameters = {
+      ...collectedParameters,
+      [currentMissingParam.nodeIndex]: {
+        ...collectedParameters[currentMissingParam.nodeIndex],
+        [firstMissingParam]: userResponse
+      }
+    };
+
+    // Check if we need more parameters for this node
+    const remainingParams = currentMissingParam.missingParameters.slice(1);
+    
+    if (remainingParams.length > 0) {
+      // Ask for next parameter of current node
+      const nextParam = remainingParams[0];
+      const paramDescription = currentMissingParam.toolData.requiredParameters[nextParam];
+      
+      const question = `Great! Now I need the **${nextParam}** for the **${currentMissingParam.nodeName}** node: ${paramDescription}`;
+      
+      const assistantMessage = {
+        role: 'assistant',
+        content: question,
+        timestamp: Date.now()
+      };
+      
+      setChatHistory(prev => [...prev, assistantMessage]);
+      
+      // Update parameter collection state
+      setParameterCollection(prev => ({
+        ...prev,
+        collectedParameters: updatedCollectedParameters,
+        missingParams: prev.missingParams.map((param, index) => 
+          index === currentNodeIndex 
+            ? { ...param, missingParameters: remainingParams }
+            : param
+        )
+      }));
+    } else {
+      // Move to next node
+      const nextNodeIndex = currentNodeIndex + 1;
+      
+      if (nextNodeIndex < missingParams.length) {
+        // Ask for first parameter of next node
+        const nextMissingParam = missingParams[nextNodeIndex];
+        askForParameter(nextMissingParam);
+        
+        setParameterCollection(prev => ({
+          ...prev,
+          currentNodeIndex: nextNodeIndex,
+          currentNodeType: nextMissingParam.nodeType,
+          collectedParameters: updatedCollectedParameters
+        }));
+      } else {
+        // All parameters collected, create workflow
+        setParameterCollection(prev => ({
+          ...prev,
+          collectedParameters: updatedCollectedParameters
+        }));
+        
+        await createWorkflowWithCollectedParameters();
+      }
+    }
+  };
+
+  // Generate workflow summary (client-side version)
+  const generateWorkflowSummary = (pipeline) => {
+    if (!pipeline.nodes || pipeline.nodes.length === 0) {
+      return 'Workflow generated successfully!';
+    }
+
+    const { nodes, edges } = pipeline;
+    let summary = '🚀 Workflow will execute as follows:\n\n';
+
+    // Find the starting node (node with no incoming edges)
+    const nodesWithIncoming = new Set(edges.map(edge => edge.to));
+    const startNodes = nodes.filter(node => !nodesWithIncoming.has(node.id));
+
+    if (startNodes.length === 0 && nodes.length > 0) {
+      // If no clear start, use the first node
+      startNodes.push(nodes[0]);
+    }
+
+    // Build execution flow
+    const processedNodes = new Set();
+    const executionOrder = [];
+
+    function buildFlow(nodeId) {
+      if (processedNodes.has(nodeId)) return;
+      processedNodes.add(nodeId);
+
+      const node = nodes.find(n => n.id === nodeId);
+      if (node) {
+        executionOrder.push(node);
+
+        // Find outgoing edges
+        const outgoingEdges = edges.filter(edge => edge.from === nodeId);
+        outgoingEdges.forEach(edge => {
+          buildFlow(edge.to);
+        });
+      }
+    }
+
+    startNodes.forEach(startNode => buildFlow(startNode.id));
+
+    // Generate the summary
+    executionOrder.forEach((node, index) => {
+      const toolData = tools.find(tool => tool.name === node.name || tool.type === node.type);
+      const nodeName = node.name || node.type;
+      const icon = toolData?.icon || '⚙️';
+
+      if (index === 0) {
+        summary += `📍 Start: ${icon} ${nodeName}`;
+      } else {
+        summary += ` ⬇️ ${icon} ${nodeName}`;
+      }
+
+      // Add parameter info if available
+      if (node.parameters && Object.keys(node.parameters).length > 0) {
+        const params = Object.entries(node.parameters)
+          .slice(0, 2) // Show only first 2 parameters
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? `[${value.join(', ')}]` : value}`)
+          .join(', ');
+        summary += ` (${params})`;
+      }
+
+      summary += '\n';
+    });
+
+    // Add schedule info if available
+    if (pipeline.schedule && pipeline.schedule.interval) {
+      summary += `\n⏰ Schedule: Runs ${pipeline.schedule.interval}`;
+      if (pipeline.schedule.next_run) {
+        summary += `, next at ${new Date(pipeline.schedule.next_run).toLocaleString()}`;
+      }
+    }
+
+    summary += '\n\n✨ Click "Run Workflow" to execute this automation!';
+
+    return summary;
+  };
+
+  // Create workflow with collected parameters
+  const createWorkflowWithCollectedParameters = async () => {
+    const { pendingPipeline, collectedParameters } = parameterCollection;
+    
+    // Merge collected parameters into the pipeline
+    const updatedPipeline = {
+      ...pendingPipeline,
+      nodes: pendingPipeline.nodes.map((node, index) => ({
+        ...node,
+        parameters: {
+          ...node.parameters,
+          ...collectedParameters[index]
+        }
+      }))
+    };
+
+    // Generate the visual workflow
+    if (nodes.length > 0) {
+      updateCanvasFromPipeline(updatedPipeline);
+    } else {
+      generateCanvasFromPipeline(updatedPipeline);
+    }
+
+    // Generate workflow summary
+    const workflowSummary = generateWorkflowSummary(updatedPipeline);
+    const assistantMessage = {
+      role: 'assistant',
+      content: workflowSummary,
+      timestamp: Date.now()
+    };
+    
+    setChatHistory(prev => [...prev, assistantMessage]);
+
+    // Reset parameter collection
+    setParameterCollection({
+      isActive: false,
+      currentNodeIndex: 0,
+      currentNodeType: null,
+      collectedParameters: {},
+      pendingPipeline: null
+    });
   };
 
   const onConnect = useCallback(
@@ -434,6 +698,13 @@ function App() {
     const userMessage = { role: 'user', content: message, timestamp: Date.now() };
     setChatHistory(prev => [...prev, userMessage]);
 
+    // Check if we're in parameter collection mode
+    if (parameterCollection.isActive) {
+      await handleParameterResponse(message);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:3333/generate-pipeline', {
         method: 'POST',
@@ -469,19 +740,27 @@ function App() {
             setWorkflowSchedule(data.pipeline.schedule);
           }
           
-          // Check if we should update existing workflow or create new one
-          if (nodes.length > 0) {
-            updateCanvasFromPipeline(data.pipeline);
-          } else {
-            generateCanvasFromPipeline(data.pipeline);
+          // Check if parameters are missing and start collection flow
+          const needsParameterCollection = checkAndCollectParameters(data.pipeline);
+          
+          if (!needsParameterCollection) {
+            // All parameters provided, create workflow immediately
+            if (nodes.length > 0) {
+              updateCanvasFromPipeline(data.pipeline);
+            } else {
+              generateCanvasFromPipeline(data.pipeline);
+            }
+            
+            // Send success message
+            const assistantMessage = {
+              role: 'assistant',
+              content: data.message || 'Workflow generated successfully!',
+              timestamp: Date.now()
+            };
+            setChatHistory(prev => [...prev, assistantMessage]);
           }
+          // If needsParameterCollection is true, the flow will continue in parameter collection mode
         }
-        const assistantMessage = {
-          role: 'assistant',
-          content: data.message || 'Workflow generated successfully!',
-          timestamp: Date.now()
-        };
-        setChatHistory(prev => [...prev, assistantMessage]);
       } else {
         // Fallback for text responses
         const assistantMessage = {
@@ -530,7 +809,7 @@ function App() {
       return {
         id: node.id || `${Date.now()}-${index}`,
         type: mapNodeType(node.type), // Use mapped type
-        position: { x: 100 + index * 200, y: 100 },
+        position: { x: 100 + index * 350, y: 100 },
         data: nodeData,
       };
     });
@@ -613,8 +892,8 @@ function App() {
             // For multiple outputs from same source, stack vertically
             if (totalOutputs > 1) {
               // Position multiple outputs vertically under each other
-              const baseX = sourceNode.position.x + 250;
-              const verticalSpacing = 150;
+              const baseX = sourceNode.position.x + 400;
+              const verticalSpacing = 200;
               const centerY = sourceNode.position.y;
 
               position = {
@@ -624,7 +903,7 @@ function App() {
             } else {
               // Single output, position directly to the right
               position = {
-                x: sourceNode.position.x + 250,
+                x: sourceNode.position.x + 400,
                 y: sourceNode.position.y
               };
             }
@@ -641,8 +920,8 @@ function App() {
                 target.id === node.id
               );
 
-              const baseX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 250;
-              const verticalSpacing = 150;
+              const baseX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 400;
+              const verticalSpacing = 200;
               const centerY = sourceNode.position.y;
 
               position = {
@@ -651,7 +930,7 @@ function App() {
               };
             } else {
               // Single endpoint, position directly to the right
-              const rightmostX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 250;
+              const rightmostX = Math.max(...nodes.map(n => n.position.x), sourceNode.position.x) + 400;
               position = {
                 x: rightmostX,
                 y: sourceNode.position.y
@@ -668,8 +947,8 @@ function App() {
         const centerY = (minY + maxY) / 2;
 
         position = {
-          x: Math.max(...existingPositions.map(p => p.x), 100) + 300,
-          y: centerY - 50 + (index * 100) // Spread vertically if multiple
+          x: Math.max(...existingPositions.map(p => p.x), 100) + 450,
+          y: centerY - 50 + (index * 150) // Spread vertically if multiple
         };
       }
 
@@ -770,15 +1049,21 @@ function App() {
         const currentNode = fullExecutionOrder[currentStep];
 
         // Update nodes to highlight the current executing node
+        console.log('🎯 Highlighting node:', currentNode.id, 'at step:', currentStep);
         setNodes(currentNodes =>
-          currentNodes.map(node => ({
-            ...node,
-            data: {
-              ...node.data,
-              isExecuting: node.id === currentNode.id,
-              executionStep: currentStep
-            }
-          }))
+          currentNodes.map(node => {
+            const isExecuting = node.id === currentNode.id;
+            console.log(`Node ${node.id}: isExecuting = ${isExecuting}`);
+            return {
+              ...node,
+              key: `${node.id}-${isExecuting ? 'executing' : 'idle'}-${currentStep}`, // Force re-render
+              data: {
+                ...node.data,
+                isExecuting: isExecuting,
+                executionStep: currentStep
+              }
+            };
+          })
         );
 
         setExecutingNodeId(currentNode.id);
@@ -809,6 +1094,7 @@ function App() {
         setNodes(currentNodes =>
           currentNodes.map(node => ({
             ...node,
+            key: `${node.id}-idle-complete`, // Force re-render
             data: {
               ...node.data,
               isExecuting: false,
@@ -843,13 +1129,29 @@ function App() {
         <header className="bg-n8n-darker border-b border-gray-700 p-4">
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold">AI Workflow Canvas</h1>
-            <button
-              onClick={runWorkflow}
-              disabled={isExecutionRunning || nodes.length === 0}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-md text-sm font-medium"
-            >
-              {isExecutionRunning ? 'Running...' : 'Run Workflow'}
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Scheduler Display */}
+              {workflowSchedule && workflowSchedule.interval && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-800 rounded-lg text-sm">
+                  <span className="text-blue-200">⏰</span>
+                  <span className="text-blue-100">
+                    {workflowSchedule.interval}
+                    {workflowSchedule.next_run && (
+                      <span className="text-blue-300">
+                        , next: {new Date(workflowSchedule.next_run).toLocaleDateString()} {new Date(workflowSchedule.next_run).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={runWorkflow}
+                disabled={isExecutionRunning || nodes.length === 0}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-md text-sm font-medium"
+              >
+                {isExecutionRunning ? 'Running...' : 'Run Workflow'}
+              </button>
+            </div>
           </div>
         </header>
 
