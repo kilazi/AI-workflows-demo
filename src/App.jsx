@@ -19,13 +19,72 @@ const initialEdges = [];
 // Custom Node Components
 import { Handle, Position } from 'reactflow';
 
-function EcosystemNode({ data }) {
+// Helper function to render parameter chips
+function ParameterChips({ parameters }) {
+  if (!parameters || Object.keys(parameters).length === 0) {
+    return null;
+  }
+
+  const formatValue = (value) => {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '[]';
+      if (value.length === 1) return value[0];
+      return `[${value.length} items]`;
+    }
+    if (typeof value === 'string') {
+      if (value.length > 15) {
+        return `${value.substring(0, 12)}...`;
+      }
+      return value;
+    }
+    if (typeof value === 'object') {
+      return '[object]';
+    }
+    return String(value);
+  };
+
+  // Show only first 3 parameters to avoid overwhelming the node
+  const entries = Object.entries(parameters);
+  const visibleEntries = entries.slice(0, 3);
+  const hasMore = entries.length > 3;
+
   return (
-    <div className="react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+    <div className="flex flex-wrap gap-1 mt-2">
+      {visibleEntries.map(([key, value]) => (
+        <span
+          key={key}
+          className="parameter-chip"
+          title={`${key}: ${Array.isArray(value) ? value.join(', ') : value}`}
+        >
+          {key}: {formatValue(value)}
+        </span>
+      ))}
+      {hasMore && (
+        <span className="parameter-chip opacity-60">
+          +{entries.length - 3} more
+        </span>
+      )}
+    </div>
+  );
+}
+
+function EcosystemNode({ data }) {
+  const showType = data.type && data.type !== data.label;
+
+  return (
+    <div className="react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-blue-400" />
-      <div className="flex items-center">
-        <span className="text-lg mr-2">{data.icon || '🌐'}</span>
-        <span className="text-white text-sm font-medium">{data.label}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center">
+          <span className="text-lg mr-2 flex-shrink-0">{data.icon || '🌐'}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            {showType && (
+              <span className="text-blue-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+            )}
+          </div>
+        </div>
+        <ParameterChips parameters={data.parameters} />
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-400" />
     </div>
@@ -33,12 +92,22 @@ function EcosystemNode({ data }) {
 }
 
 function UtilityNode({ data }) {
+  const showType = data.type && data.type !== data.label;
+
   return (
-    <div className="react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+    <div className="react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-green-400" />
-      <div className="flex items-center">
-        <span className="text-lg mr-2">{data.icon || '⚙️'}</span>
-        <span className="text-white text-sm font-medium">{data.label}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center">
+          <span className="text-lg mr-2 flex-shrink-0">{data.icon || '⚙️'}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            {showType && (
+              <span className="text-green-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+            )}
+          </div>
+        </div>
+        <ParameterChips parameters={data.parameters} />
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-green-400" />
     </div>
@@ -46,12 +115,22 @@ function UtilityNode({ data }) {
 }
 
 function AiToolNode({ data }) {
+  const showType = data.type && data.type !== data.label;
+
   return (
-    <div className="react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+    <div className="react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-purple-400" />
-      <div className="flex items-center">
-        <span className="text-lg mr-2">{data.icon || '🤖'}</span>
-        <span className="text-white text-sm font-medium">{data.label}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center">
+          <span className="text-lg mr-2 flex-shrink-0">{data.icon || '🤖'}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            {showType && (
+              <span className="text-purple-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+            )}
+          </div>
+        </div>
+        <ParameterChips parameters={data.parameters} />
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-purple-400" />
     </div>
@@ -59,12 +138,22 @@ function AiToolNode({ data }) {
 }
 
 function TemporalNode({ data }) {
+  const showType = data.type && data.type !== data.label;
+
   return (
-    <div className="react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800">
+    <div className="react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 border-gray-600 bg-gray-800 min-w-48 max-w-64">
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-yellow-400" />
-      <div className="flex items-center">
-        <span className="text-lg mr-2">{data.icon || '⏰'}</span>
-        <span className="text-white text-sm font-medium">{data.label}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center">
+          <span className="text-lg mr-2 flex-shrink-0">{data.icon || '⏰'}</span>
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-white text-sm font-medium truncate">{data.label}</span>
+            {showType && (
+              <span className="text-yellow-300 text-xs font-medium uppercase tracking-wide">{data.type}</span>
+            )}
+          </div>
+        </div>
+        <ParameterChips parameters={data.parameters} />
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-yellow-400" />
     </div>
@@ -123,6 +212,7 @@ function App() {
       const type = event.dataTransfer.getData('application/reactflow/type');
       const name = event.dataTransfer.getData('application/reactflow/name');
       const toolType = event.dataTransfer.getData('application/reactflow/toolType');
+      const icon = event.dataTransfer.getData('application/reactflow/icon');
 
       if (typeof type === 'undefined' || !type) {
         return;
@@ -137,7 +227,12 @@ function App() {
         id: `${nodes.length + 1}`,
         type: toolType,
         position,
-        data: { label: name },
+        data: {
+          label: name,
+          type: toolType,
+          icon: icon || undefined,
+          parameters: {}
+        },
       };
 
       setNodes((nds) => nds.concat(newNode));
@@ -210,6 +305,7 @@ function App() {
         position: { x: 100 + index * 200, y: 100 },
         data: {
           label: node.name || node.type,
+          type: node.type,
           icon: toolData?.icon,
           parameters: node.parameters
         },

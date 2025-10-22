@@ -23,6 +23,7 @@ function ToolsSidebar({ tools = [] }) {
     event.dataTransfer.setData('application/reactflow/type', tool.type);
     event.dataTransfer.setData('application/reactflow/name', tool.name);
     event.dataTransfer.setData('application/reactflow/toolType', tool.type);
+    event.dataTransfer.setData('application/reactflow/icon', tool.icon || '');
     event.dataTransfer.effectAllowed = 'move';
   };
 
