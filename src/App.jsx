@@ -20,48 +20,63 @@ import { Handle, Position } from 'reactflow';
 
 // Helper function to render parameter chips
 function ParameterChips({ parameters }) {
-  if (!parameters || Object.keys(parameters).length === 0) {
-    return null;
-  }
+  // Debug log to see what parameters we're getting
+  console.log('🔍 ParameterChips received parameters:', parameters);
+  console.log('🔍 Parameters type:', typeof parameters);
+  console.log('🔍 Parameters keys:', parameters ? Object.keys(parameters) : 'NO PARAMETERS');
+  
+  // ALWAYS render something to test
+  console.log('✅ ParameterChips: ALWAYS RENDERING TEST CHIP');
+  return (
+    <div className="parameter-chip bg-purple-500 text-white text-xs px-2 py-1 rounded-full mt-2">
+      PARAMETERCHIPS WORKS: {parameters ? Object.keys(parameters).length : 0} params
+    </div>
+  );
+}
 
-  const formatValue = (value) => {
-    if (Array.isArray(value)) {
-      if (value.length === 0) return '[]';
-      if (value.length === 1) return value[0];
-      return `[${value.length} items]`;
+// Cool schedule chip component
+function ScheduleChip({ schedule, isFirstNode = false }) {
+  if (!schedule || !schedule.interval) return null;
+
+  const getScheduleIcon = (interval) => {
+    switch (interval.toLowerCase()) {
+      case 'daily': return '🌅';
+      case 'weekly': return '📅';
+      case 'monthly': return '🗓️';
+      case 'hourly': return '⏰';
+      default: return '⏱️';
     }
-    if (typeof value === 'string') {
-      if (value.length > 15) {
-        return `${value.substring(0, 12)}...`;
-      }
-      return value;
-    }
-    if (typeof value === 'object') {
-      return '[object]';
-    }
-    return String(value);
   };
 
-  // Show only first 3 parameters to avoid overwhelming the node
-  const entries = Object.entries(parameters);
-  const visibleEntries = entries.slice(0, 3);
-  const hasMore = entries.length > 3;
+  const getScheduleColor = (interval) => {
+    switch (interval.toLowerCase()) {
+      case 'daily': return 'bg-orange-500';
+      case 'weekly': return 'bg-blue-500';
+      case 'monthly': return 'bg-purple-500';
+      case 'hourly': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const formatNextRun = (nextRun) => {
+    if (!nextRun) return '';
+    const date = new Date(nextRun);
+    const now = new Date();
+    const diffHours = Math.floor((date - now) / (1000 * 60 * 60));
+    
+    if (diffHours < 24) {
+      return `in ${diffHours}h`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
 
   return (
-    <div className="flex flex-wrap gap-1 mt-2">
-      {visibleEntries.map(([key, value]) => (
-        <span
-          key={key}
-          className="parameter-chip"
-          title={`${key}: ${Array.isArray(value) ? value.join(', ') : value}`}
-        >
-          {key}: {formatValue(value)}
-        </span>
-      ))}
-      {hasMore && (
-        <span className="parameter-chip opacity-60">
-          +{entries.length - 3} more
-        </span>
+    <div className={`schedule-chip ${getScheduleColor(schedule.interval)} text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 mt-2 animate-pulse`}>
+      <span>{getScheduleIcon(schedule.interval)}</span>
+      <span className="font-medium">{schedule.interval}</span>
+      {schedule.next_run && (
+        <span className="opacity-80">• {formatNextRun(schedule.next_run)}</span>
       )}
     </div>
   );
@@ -70,6 +85,13 @@ function ParameterChips({ parameters }) {
 function EcosystemNode({ data }) {
   const showType = data.type && data.type !== data.label;
   const isExecuting = data.isExecuting;
+  const isFirstNode = data.isFirstNode;
+
+  // Debug log to see what data we're getting
+  console.log('🔍 EcosystemNode data:', data);
+  console.log('🔍 EcosystemNode parameters:', data.parameters);
+  console.log('🔍 EcosystemNode isFirstNode:', data.isFirstNode);
+  console.log('🔍 EcosystemNode schedule:', data.schedule);
 
   return (
     <div className={`react-flow__node-ecosystem px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -97,7 +119,27 @@ function EcosystemNode({ data }) {
             </div>
           )}
         </div>
-        <ParameterChips parameters={data.parameters} />
+        {/* Simple parameter display */}
+        {data.parameters && Object.keys(data.parameters).length > 0 && (
+          <div className="mt-2 p-2 bg-gray-700 rounded text-xs max-w-full">
+            {Object.entries(data.parameters).map(([key, value]) => (
+              <div key={key} className="text-gray-400 truncate" title={`${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`}>
+                {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Schedule display */}
+        {data.isFirstNode && data.schedule && data.schedule.interval && (
+          <div className="mt-2 p-2 bg-blue-800 rounded text-xs">
+            <div className="text-blue-200">Schedule: {data.schedule.interval}</div>
+            {data.schedule.next_run && (
+              <div className="text-blue-300">Next: {new Date(data.schedule.next_run).toLocaleString()}</div>
+            )}
+          </div>
+        )}
+        {isFirstNode && <ScheduleChip schedule={data.schedule} isFirstNode={true} />}
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-blue-400" />
     </div>
@@ -107,6 +149,7 @@ function EcosystemNode({ data }) {
 function UtilityNode({ data }) {
   const showType = data.type && data.type !== data.label;
   const isExecuting = data.isExecuting;
+  const isFirstNode = data.isFirstNode;
 
   return (
     <div className={`react-flow__node-utility px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -134,7 +177,26 @@ function UtilityNode({ data }) {
             </div>
           )}
         </div>
-        <ParameterChips parameters={data.parameters} />
+        {/* Simple parameter display */}
+        {data.parameters && Object.keys(data.parameters).length > 0 && (
+          <div className="mt-2 p-2 bg-gray-700 rounded text-xs max-w-full">
+            {Object.entries(data.parameters).map(([key, value]) => (
+              <div key={key} className="text-gray-400 truncate" title={`${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`}>
+                {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Schedule display */}
+        {data.isFirstNode && data.schedule && data.schedule.interval && (
+          <div className="mt-2 p-2 bg-blue-800 rounded text-xs">
+            <div className="text-blue-200">Schedule: {data.schedule.interval}</div>
+            {data.schedule.next_run && (
+              <div className="text-blue-300">Next: {new Date(data.schedule.next_run).toLocaleString()}</div>
+            )}
+          </div>
+        )}
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-green-400" />
     </div>
@@ -144,6 +206,7 @@ function UtilityNode({ data }) {
 function AiToolNode({ data }) {
   const showType = data.type && data.type !== data.label;
   const isExecuting = data.isExecuting;
+  const isFirstNode = data.isFirstNode;
 
   return (
     <div className={`react-flow__node-aiTool px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -171,7 +234,26 @@ function AiToolNode({ data }) {
             </div>
           )}
         </div>
-        <ParameterChips parameters={data.parameters} />
+        {/* Simple parameter display */}
+        {data.parameters && Object.keys(data.parameters).length > 0 && (
+          <div className="mt-2 p-2 bg-gray-700 rounded text-xs max-w-full">
+            {Object.entries(data.parameters).map(([key, value]) => (
+              <div key={key} className="text-gray-400 truncate" title={`${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`}>
+                {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Schedule display */}
+        {data.isFirstNode && data.schedule && data.schedule.interval && (
+          <div className="mt-2 p-2 bg-blue-800 rounded text-xs">
+            <div className="text-blue-200">Schedule: {data.schedule.interval}</div>
+            {data.schedule.next_run && (
+              <div className="text-blue-300">Next: {new Date(data.schedule.next_run).toLocaleString()}</div>
+            )}
+          </div>
+        )}
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-purple-400" />
     </div>
@@ -181,6 +263,7 @@ function AiToolNode({ data }) {
 function TemporalNode({ data }) {
   const showType = data.type && data.type !== data.label;
   const isExecuting = data.isExecuting;
+  const isFirstNode = data.isFirstNode;
 
   return (
     <div className={`react-flow__node-temporal px-3 py-2 shadow-md rounded-md border-2 min-w-48 max-w-64 transition-all duration-300 ${
@@ -208,11 +291,57 @@ function TemporalNode({ data }) {
             </div>
           )}
         </div>
-        <ParameterChips parameters={data.parameters} />
+        {/* Simple parameter display */}
+        {data.parameters && Object.keys(data.parameters).length > 0 && (
+          <div className="mt-2 p-2 bg-gray-700 rounded text-xs max-w-full">
+            {Object.entries(data.parameters).map(([key, value]) => (
+              <div key={key} className="text-gray-400 truncate" title={`${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`}>
+                {key}: {typeof value === 'string' ? value : JSON.stringify(value)}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Schedule display */}
+        {data.isFirstNode && data.schedule && data.schedule.interval && (
+          <div className="mt-2 p-2 bg-blue-800 rounded text-xs">
+            <div className="text-blue-200">Schedule: {data.schedule.interval}</div>
+            {data.schedule.next_run && (
+              <div className="text-blue-300">Next: {new Date(data.schedule.next_run).toLocaleString()}</div>
+            )}
+          </div>
+        )}
       </div>
       <Handle type="source" position={Position.Right} className="w-2 h-2 bg-yellow-400" />
     </div>
   );
+}
+
+// Function to map server node types to our custom node types
+function mapNodeType(serverType) {
+  // Map server types to our custom node types
+  const typeMapping = {
+    'Webhook': 'utility',
+    'API Call': 'utility', 
+    'Condition': 'utility',
+    'Calculation': 'utility',
+    'Google Sheets': 'ecosystem',
+    'Slack': 'ecosystem',
+    'Gmail': 'ecosystem',
+    'HubSpot': 'ecosystem',
+    'Salesforce': 'ecosystem',
+    'GitHub': 'ecosystem',
+    'Notion': 'ecosystem',
+    'Jira': 'ecosystem',
+    'OpenAI': 'aiTool',
+    'Claude': 'aiTool',
+    'Summarize': 'aiTool',
+    'Schedule': 'temporal',
+    'Delay': 'temporal',
+    'Timer': 'temporal'
+  };
+  
+  return typeMapping[serverType] || 'utility'; // Default to utility if not found
 }
 
 const nodeTypes = {
@@ -231,6 +360,7 @@ function App() {
   const [executingNodeId, setExecutingNodeId] = useState(null);
   const [executionStep, setExecutionStep] = useState(0);
   const [tools, setTools] = useState([]);
+  const [workflowSchedule, setWorkflowSchedule] = useState(null);
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
@@ -328,7 +458,17 @@ function App() {
 
       if (data.pipeline) {
         // Got a complete pipeline
+        console.log('🔍 Received pipeline from server:', data.pipeline);
+        console.log('🔍 Pipeline nodes:', data.pipeline.nodes);
+        console.log('🔍 Pipeline schedule:', data.pipeline.schedule);
+        
         if (data.pipeline.nodes && data.pipeline.nodes.length > 0) {
+          // Store schedule data
+          if (data.pipeline.schedule) {
+            console.log('🔍 Setting workflow schedule:', data.pipeline.schedule);
+            setWorkflowSchedule(data.pipeline.schedule);
+          }
+          
           // Check if we should update existing workflow or create new one
           if (nodes.length > 0) {
             updateCanvasFromPipeline(data.pipeline);
@@ -365,19 +505,33 @@ function App() {
   };
 
   const generateCanvasFromPipeline = (pipeline) => {
+    // Find starting nodes (nodes with no incoming edges)
+    const nodesWithIncoming = new Set(pipeline.edges.map(edge => edge.to));
+    const startNodes = pipeline.nodes.filter(node => !nodesWithIncoming.has(node.id));
+    
     // Find the tool data for each node to get icons
     const newNodes = pipeline.nodes.map((node, index) => {
       const toolData = tools.find(tool => tool.name === node.name || tool.type === node.type);
+      const isFirstNode = startNodes.length > 0 ? startNodes[0].id === node.id : index === 0;
+      
+      const nodeData = {
+        label: node.name || node.type,
+        type: node.type,
+        icon: toolData?.icon,
+        parameters: node.parameters,
+        isFirstNode: isFirstNode,
+        schedule: isFirstNode ? workflowSchedule : null
+      };
+
+      console.log('🔍 Creating node with data:', nodeData);
+      console.log('🔍 Node parameters:', node.parameters);
+      console.log('🔍 Workflow schedule:', workflowSchedule);
+
       return {
         id: node.id || `${Date.now()}-${index}`,
-        type: node.type,
+        type: mapNodeType(node.type), // Use mapped type
         position: { x: 100 + index * 200, y: 100 },
-        data: {
-          label: node.name || node.type,
-          type: node.type,
-          icon: toolData?.icon,
-          parameters: node.parameters
-        },
+        data: nodeData,
       };
     });
 
@@ -523,15 +677,20 @@ function App() {
       position.x = Math.max(50, Math.min(position.x, 2000));
       position.y = Math.max(50, Math.min(position.y, 1000));
 
+      // Check if this is a starting node (no incoming edges)
+      const isFirstNode = !pipeline.edges.some(edge => edge.to === node.id);
+      
       return {
         id: node.id || `${Date.now()}-${index}`,
-        type: node.type,
+        type: mapNodeType(node.type), // Use mapped type
         position,
         data: {
           label: node.name || node.type,
           type: node.type,
           icon: toolData?.icon,
-          parameters: node.parameters
+          parameters: node.parameters,
+          isFirstNode: isFirstNode,
+          schedule: isFirstNode ? workflowSchedule : null
         },
       };
     });
@@ -722,7 +881,7 @@ function App() {
           </div>
 
           {/* Chat Panel */}
-          <div className="w-80 border-l border-gray-700 flex flex-col">
+          <div className="w-80 border-l border-gray-700 flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
             <ChatPanel
               chatHistory={chatHistory}
               onChatSubmit={handleChatSubmit}

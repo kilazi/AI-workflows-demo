@@ -33,42 +33,12 @@ function ToolsSidebar({ tools = [] }) {
 
   return (
     <div className="w-80 tools-sidebar flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold mb-4 text-n8n-primary">Tools Library</h2>
+      
 
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search tools..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 bg-n8n-light border border-gray-600 rounded-md text-n8n-primary placeholder-n8n-muted text-sm focus:outline-none focus:border-blue-500"
-        />
-      </div>
-
-      {/* Categories */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex space-x-2 overflow-x-auto">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                selectedCategory === category.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-n8n-light text-n8n-secondary hover:bg-gray-600'
-              }`}
-            >
-              <span className="mr-1">{category.icon}</span>
-              {category.name}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Tools List */}
       <div className="flex-1 overflow-y-auto p-4">
+      <h2 className="text-lg font-semibold mb-4 text-n8n-primary">Tools Library</h2>
         {filteredTools.length === 0 && (
           <div className="text-center text-n8n-muted mt-8">
             <p>No tools found matching your search.</p>

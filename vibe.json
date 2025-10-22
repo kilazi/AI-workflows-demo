@@ -6,7 +6,12 @@
         "icon": "📊",
         "color": "bg-dark-node-ecosystem",
         "description": "Connects to Google Sheets for reading and writing spreadsheet data with automated synchronization",
-        "tags": ["data", "spreadsheet", "google", "sync", "automation"]
+        "tags": ["data", "spreadsheet", "google", "sync", "automation"],
+        "requiredParameters": {
+          "spreadsheet_id": "Google Sheets document ID (from URL)",
+          "sheet_name": "Specific sheet name within the spreadsheet",
+          "range": "Cell range (e.g., A1:C10) or 'A:Z' for entire columns"
+        }
       },
       {
         "type": "ecosystem",
@@ -14,7 +19,12 @@
         "icon": "💬",
         "color": "bg-dark-node-ecosystem",
         "description": "Integrates with Slack for sending messages, notifications, and managing channels automatically",
-        "tags": ["communication", "messaging", "team", "notification", "collaboration"]
+        "tags": ["communication", "messaging", "team", "notification", "collaboration"],
+        "requiredParameters": {
+          "channel": "Slack channel name (e.g., #general) or user ID (@username)",
+          "message": "Message content to send",
+          "bot_token": "Slack bot token for authentication"
+        }
       },
       {
         "type": "ecosystem",
@@ -22,7 +32,13 @@
         "icon": "✉️",
         "color": "bg-dark-node-ecosystem",
         "description": "Connects to Gmail for sending emails, managing inbox, and automating email workflows",
-        "tags": ["email", "communication", "google", "automation", "inbox"]
+        "tags": ["email", "communication", "google", "automation", "inbox"],
+        "requiredParameters": {
+          "to": "Recipient email address",
+          "subject": "Email subject line",
+          "body": "Email content/body",
+          "from": "Sender email address (optional, defaults to authenticated account)"
+        }
       },
       {
         "type": "ecosystem",
@@ -30,7 +46,13 @@
         "icon": "📚",
         "color": "bg-dark-node-ecosystem",
         "description": "Integrates with Notion workspaces for creating, updating, and managing pages and databases",
-        "tags": ["productivity", "documentation", "workspace", "database", "knowledge"]
+        "tags": ["productivity", "documentation", "workspace", "database", "knowledge"],
+        "requiredParameters": {
+          "page_id": "Notion page ID (from page URL)",
+          "database_id": "Notion database ID (for database operations)",
+          "content": "Content to add/update in the page",
+          "api_key": "Notion integration token"
+        }
       },
       {
         "type": "ecosystem",
@@ -38,7 +60,14 @@
         "icon": "🎯",
         "color": "bg-dark-node-ecosystem",
         "description": "Connects to Jira for project management, issue tracking, and workflow automation",
-        "tags": ["project", "management", "tracking", "development", "agile"]
+        "tags": ["project", "management", "tracking", "development", "agile"],
+        "requiredParameters": {
+          "project_key": "Jira project key (e.g., PROJ)",
+          "issue_type": "Type of issue (Bug, Task, Story, Epic)",
+          "summary": "Issue title/summary",
+          "description": "Detailed issue description",
+          "assignee": "Person assigned to the issue (optional)"
+        }
       },
       {
         "type": "utility",
@@ -46,7 +75,13 @@
         "icon": "🔗",
         "color": "bg-dark-node-utility",
         "description": "Receives HTTP callbacks from external services and triggers downstream actions",
-        "tags": ["integration", "http", "callback", "external", "trigger"]
+        "tags": ["integration", "http", "callback", "external", "trigger"],
+        "requiredParameters": {
+          "url": "Webhook endpoint URL",
+          "method": "HTTP method (GET, POST, PUT, DELETE)",
+          "headers": "Custom headers (optional)",
+          "body": "Request body for POST/PUT requests (optional)"
+        }
       },
       {
         "type": "utility",
@@ -54,7 +89,14 @@
         "icon": "🌐",
         "color": "bg-dark-node-utility",
         "description": "Makes HTTP requests to external APIs and services with configurable endpoints and parameters",
-        "tags": ["http", "external", "integration", "request", "automation"]
+        "tags": ["http", "external", "integration", "request", "automation"],
+        "requiredParameters": {
+          "url": "API endpoint URL",
+          "method": "HTTP method (GET, POST, PUT, DELETE)",
+          "headers": "Request headers (Authorization, Content-Type, etc.)",
+          "body": "Request body for POST/PUT requests (optional)",
+          "timeout": "Request timeout in seconds (optional)"
+        }
       },
       {
         "type": "utility",
@@ -62,7 +104,13 @@
         "icon": "🔀",
         "color": "bg-dark-node-utility",
         "description": "Evaluates conditions and routes workflow execution based on specified criteria",
-        "tags": ["logic", "decision", "routing", "control", "automation"]
+        "tags": ["logic", "decision", "routing", "control", "automation"],
+        "requiredParameters": {
+          "condition": "Condition expression (e.g., {{field}} == 'value')",
+          "operator": "Comparison operator (==, !=, >, <, >=, <=, contains)",
+          "value": "Value to compare against",
+          "field": "Field name from previous node output"
+        }
       },
       {
         "type": "utility",
@@ -70,7 +118,13 @@
         "icon": "🧮",
         "color": "bg-dark-node-utility",
         "description": "Performs mathematical calculations, data transformations, and statistical operations",
-        "tags": ["math", "computation", "data", "analysis", "transformation"]
+        "tags": ["math", "computation", "data", "analysis", "transformation"],
+        "requiredParameters": {
+          "operation": "Mathematical operation (add, subtract, multiply, divide, average, sum)",
+          "field1": "First input field or value",
+          "field2": "Second input field or value (for binary operations)",
+          "output_field": "Name for the calculated result"
+        }
       },
       {
         "type": "aiTool",
@@ -78,7 +132,13 @@
         "icon": "💡",
         "color": "bg-dark-node-aiTool",
         "description": "Uses LLM to generate creative ideas and solutions based on provided data with specific user prompts",
-        "tags": ["creativity", "ideas", "innovation", "brainstorming", "ai"]
+        "tags": ["creativity", "ideas", "innovation", "brainstorming", "ai"],
+        "requiredParameters": {
+          "prompt": "Brainstorming prompt or question",
+          "input_data": "Data to analyze for brainstorming",
+          "num_ideas": "Number of ideas to generate (default: 5)",
+          "focus_area": "Specific area to focus on (optional)"
+        }
       },
       {
         "type": "aiTool",
@@ -86,7 +146,13 @@
         "icon": "📝",
         "color": "bg-dark-node-aiTool",
         "description": "Uses AI to condense and extract key information from large amounts of text or data",
-        "tags": ["summary", "condense", "extract", "key-points", "ai"]
+        "tags": ["summary", "condense", "extract", "key-points", "ai"],
+        "requiredParameters": {
+          "text_input": "Text or data to summarize",
+          "summary_length": "Length of summary (short, medium, long)",
+          "focus_points": "Specific points to focus on (optional)",
+          "output_format": "Output format (bullet points, paragraph, list)"
+        }
       },
       {
         "type": "aiTool",
@@ -94,7 +160,13 @@
         "icon": "🎯",
         "color": "bg-dark-node-aiTool",
         "description": "Uses AI to choose the best option from multiple alternatives based on specified criteria",
-        "tags": ["decision", "choice", "evaluation", "best-option", "ai"]
+        "tags": ["decision", "choice", "evaluation", "best-option", "ai"],
+        "requiredParameters": {
+          "options": "List of options to choose from",
+          "criteria": "Criteria for selection",
+          "context": "Additional context for decision making",
+          "output_format": "How to present the selected option"
+        }
       },
       {
         "type": "aiTool",
@@ -102,7 +174,13 @@
         "icon": "⚖️",
         "color": "bg-dark-node-aiTool",
         "description": "Uses AI to assess and score content, ideas, or solutions against defined parameters",
-        "tags": ["assessment", "scoring", "analysis", "judgment", "ai"]
+        "tags": ["assessment", "scoring", "analysis", "judgment", "ai"],
+        "requiredParameters": {
+          "content": "Content to evaluate",
+          "evaluation_criteria": "Criteria for evaluation",
+          "scoring_scale": "Scoring scale (1-10, A-F, pass/fail)",
+          "output_format": "Format for evaluation results"
+        }
       },
       {
         "type": "temporal",
@@ -110,7 +188,14 @@
         "icon": "⏰",
         "color": "bg-dark-node-temporal",
         "description": "Triggers workflows at specified times, intervals, or based on calendar events",
-        "tags": ["timing", "automation", "recurring", "calendar", "execution"]
+        "tags": ["timing", "automation", "recurring", "calendar", "execution"],
+        "requiredParameters": {
+          "interval": "Schedule interval (hourly, daily, weekly, monthly)",
+          "time": "Specific time to run (e.g., 09:00)",
+          "timezone": "Timezone for scheduling (optional)",
+          "start_date": "When to start the schedule (optional)",
+          "end_date": "When to end the schedule (optional)"
+        }
       }
     ]
   }
